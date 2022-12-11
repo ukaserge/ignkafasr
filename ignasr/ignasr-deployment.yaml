@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # creationTimestamp: null
+  labels:
+    app: ignasr
+  name: ignasr
+  namespace: limdongjin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ignasr
+  strategy: {}
+  template:
+    metadata:
+      # creationTimestamp: null
+      labels:
+        app: ignasr
+    spec:
+      serviceAccountName: ignasr
+      # For docker build.
+      #imagePullSecrets:
+      #  - name: regcred
+      containers:
+        - image: gcr.io/limdongjin-kube/ignasr:4.0
+          name: ignasr
+          resources:
+            limits:
+              cpu: 2000m
+              ephemeral-storage: 2Gi
+              memory: 3Gi
+            requests:
+              cpu: 500m
+              ephemeral-storage: 1Gi
+              memory: 2Gi
+          env:
+            - name: BOOTSTRAPSERVERS
+              value: my-cluster-kafka-bootstrap:9092
+            - name: SASLJAASCONFIG
+              valueFrom:
+                secretKeyRef:
+                  name: ignasr
+                  key: "sasl.jaas.config"
+            - name: SERVICENAME
+              value: ignite-service
+            - name: NAMESPACE
+              value: limdongjin
+            - name: ADDRESSES
+              value: "ignite-service:10800"
+
+status: {}
+

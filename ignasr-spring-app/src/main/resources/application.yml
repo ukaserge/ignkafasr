@@ -1,0 +1,24 @@
+#server:
+#  port: 8088
+# management:
+#  server:
+#    port: 8088
+#  endpoint:
+#    health:
+#      enabled: true
+
+logging:
+  level:
+    org.springframework.*: DEBUG
+    io.netty.*: DEBUG
+
+
+limdongjin:
+  ignasr:
+    kafka:
+      bootstrapservers: ${BOOTSTRAPSERVERS}
+      sasljaasconfig: ${SASLJAASCONFIG}
+    ignite:
+      namespace: ${NAMESPACE}     # limdongjin
+      servicename: ${SERVICENAME} # ignite-service
+      addresses: ${ADDRESSES}     # ignite-service:10800

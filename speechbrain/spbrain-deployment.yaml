@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: StatefulSet 
+metadata:
+  labels:
+    app: spbrain
+  name: spbrain
+  namespace: limdongjin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spbrain
+  serviceName: spbrain
+  template:
+    metadata:
+      labels:
+        app: spbrain
+    spec:
+      serviceAccountName: spbrain
+      containers:
+        - image: gcr.io/limdongjin-kube/spbrain:4.5
+          name: spbrain
+          resources:
+            limits:
+              cpu: 4000m
+              # ephemeral-storage: 20Gi
+              memory: 3Gi
+            requests:
+              cpu: 1510m
+              # ephemeral-storage: 10Gi
+              memory: 2Gi
+          volumeMounts:
+            - mountPath: /app/vol
+              name: spbrain-vol
+              readOnly: false
+          env:
+            - name: BOOTSTRAPSERVERS
+              value: my-cluster-kafka-bootstrap:9092
+            - name: KAFKA_USER_NAME
+              value: spbrain
+            - name: KAFKA_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: spbrain
+                  key: "password"
+ 
+  volumeClaimTemplates:
+    - metadata:
+        name: spbrain-vol
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: "15Gi" # make sure to provide enought space for your application data
+   
+

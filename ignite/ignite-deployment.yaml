@@ -1,0 +1,55 @@
+# An example of a Kubernetes configuration for pod deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # Cluster name.
+  name: ignite-cluster
+  namespace: limdongjin
+spec:
+  # The initial number of pods to be started by Kubernetes.
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ignite
+  template:
+    metadata:
+      labels:
+        app: ignite
+    spec:
+      serviceAccountName: ignite
+      terminationGracePeriodSeconds: 60000
+      containers:
+      # Custom pod name.
+      - name: ignite-node
+        image: apacheignite/ignite:2.14.0
+        env:
+        - name: OPTION_LIBS
+          value: ignite-kubernetes,ignite-rest-http,ignite-visor-console
+        - name: CONFIG_URI
+          value: file:///ignite/config/node-configuration.xml
+        - name: JVM_OPTS
+          value: "-Xms1024m -Xmx1024m -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+ScavengeBeforeFullGC -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC"
+        #- name: QUIET
+        #  value: "false"
+        ports:
+        # Ports to open.
+        - containerPort: 47100 # communication SPI port
+        - containerPort: 47500 # discovery SPI port
+        - containerPort: 49112 # dafault JMX port
+        - containerPort: 10800 # thin clients/JDBC driver port
+        - containerPort: 8080 # REST API
+        volumeMounts:
+        - mountPath: /ignite/config
+          name: config-vol
+        resources:
+          limits:
+            cpu: 2000m
+            memory: 4G
+          requests:
+            cpu: 1500m
+            memory: 3G
+      volumes:
+      - name: config-vol
+        configMap:
+          name: ignite-config
+      

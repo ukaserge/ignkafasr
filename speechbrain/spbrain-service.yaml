@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: spbrain
+  name: spbrain
+  namespace: limdongjin
+spec:
+  ports:
+  - name: 80881-8088
+    port: 18088
+    protocol: TCP
+    targetPort: 18088
+  selector:
+    app: spbrain 
+  type: ClusterIP
+status:
+  loadBalancer: {}

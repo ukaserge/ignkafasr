@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: stomasr
+  name: stomasr
+  namespace: limdongjin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stomasr
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: stomasr
+    spec:
+      serviceAccountName: stomasr
+      containers:
+        - image: gcr.io/limdongjin-kube/stomasr:4.0
+          name: stomasr
+          resources:
+            limits:
+              cpu: 2000m
+              ephemeral-storage: 2Gi
+              memory: 3Gi
+            requests:
+              cpu: 500m
+              ephemeral-storage: 1Gi
+              memory: 2Gi
+          env:
+            - name: BOOTSTRAPSERVERS
+              value: my-cluster-kafka-bootstrap:9092
+            - name: SASLJAASCONFIG
+              valueFrom:
+                secretKeyRef:
+                  name: stomasr
+                  key: "sasl.jaas.config"
+status: {}
+

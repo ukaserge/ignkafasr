@@ -1,0 +1,57 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: stomasr-ignite-endpoint-access
+  namespace: limdongjin
+  labels:
+    app: stomasr
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    resourceNames: ["ignite"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: stomasr-role-binding
+  namespace: limdongjin
+  labels:
+    app: stomasr 
+subjects:
+  - kind: ServiceAccount
+    name: stomasr
+roleRef:
+  kind: Role
+  name: stomasr-ignite-endpoint-access
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: stomasr
+  namespace: limdongjin
+rules:
+- apiGroups:
+  - ""
+  resources: # Here are the resources you can access
+  - pods
+  - endpoints
+  verbs: # That is what you can do with them
+  - get
+  - list
+  - watch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: stomasr 
+  namespace: limdongjin
+roleRef:
+  kind: ClusterRole
+  name: stomasr
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: stomasr
+  namespace: limdongjin
