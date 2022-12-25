@@ -1,0 +1,111 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: kafka-cluster
+spec:
+  kafka:
+    version: 3.3.1
+    replicas: 3
+    listeners:
+      - name: plain
+        port: 9092
+        type: internal
+        tls: false
+        authentication:
+          type: scram-sha-512
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: tls # scram-sha-512
+    authorization:
+      type: simple
+      superUsers:
+        - stomasr
+        - ignasr
+        - spbrain
+    config:
+      inter.broker.protocol.version: "3.3"
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+    storage:
+      type: ephemeral
+    readinessProbe:
+      timeoutSeconds: 20
+      initialDelaySeconds: 60
+    livenessProbe:
+      timeoutSeconds: 20
+      initialDelaySeconds: 60
+    resources: 
+      requests: 
+        memory: 200Mi
+        cpu: 200m
+      limits:
+        memory: 700Mi
+        cpu: 600m
+  zookeeper:
+    replicas: 3
+    storage:
+      type: ephemeral 
+    readinessProbe:
+      timeoutSeconds: 20
+      initialDelaySeconds: 60
+    livenessProbe:
+      timeoutSeconds: 20
+      initialDelaySeconds: 60
+    resources:
+      limits:
+        cpu: 600m
+        memory: 600Mi
+      requests:
+        cpu: 300m
+        memory: 400Mi
+  entityOperator: 
+    tlsSidecar:
+      readinessProbe:
+        timeoutSeconds: 20
+        initialDelaySeconds: 60
+      livenessProbe:
+        timeoutSeconds: 20
+        initialDelaySeconds: 60
+      resources:
+        limits:
+          memory: 300Mi
+          cpu: 200m
+        requests:
+          memory: 100Mi
+          cpu: 100m
+    topicOperator:
+      readinessProbe:
+        timeoutSeconds: 20
+        initialDelaySeconds: 60
+      livenessProbe:
+        timeoutSeconds: 20
+        initialDelaySeconds: 60
+      resources:
+        limits:
+          memory: 300Mi
+          cpu: 200m
+        requests:
+          memory: 100Mi
+          cpu: 100m
+    userOperator:
+      readinessProbe:
+        timeoutSeconds: 20
+        initialDelaySeconds: 60
+      livenessProbe:
+        timeoutSeconds: 20
+        initialDelaySeconds: 60
+      resources:
+        requests:
+          memory: 100Mi
+          cpu: 100m
+        limits:
+          memory: 300Mi
+          cpu: 200m
+

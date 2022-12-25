@@ -2,7 +2,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
 metadata:
   name: stomasr
-  namespace: limdongjin
+  namespace: kafka-cluster
   labels:
     strimzi.io/cluster: my-cluster
 spec:

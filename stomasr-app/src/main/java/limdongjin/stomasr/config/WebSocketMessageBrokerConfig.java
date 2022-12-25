@@ -7,6 +7,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import org.springframework.beans.factory.annotation.Value;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +15,9 @@ import java.util.List;
 @ComponentScan("limdongjin.stomasr.stomp")
 @EnableWebSocketMessageBroker
 public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfigurer  {
+    @Value("${limdongjin.stomasr.cors.origin}")
+    public String allowedOrigin;
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
 
@@ -29,33 +33,8 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-stomp")
-                .setAllowedOrigins("https://kafasr.limdongjin.com", "https://limdongjin-kube.du.r.appspot.com", "http://limdongjin-kube.du.r.appspot.com")
-                .setAllowedOriginPatterns("https://kafasr.limdongjin.com",  "https://limdongjin-kube.du.r.appspot.com", "http://limdongjin-kube.du.r.appspot.com")
+                .setAllowedOrigins(allowedOrigin)
                 .withSockJS()
         ;
     }
-
-//    @Override
-//    public void configureClientInboundChannel(ChannelRegistration registration){
-//        registration.interceptors(new ChannelInterceptor() {
-//            @Override
-//            public Message<?> preSend(Message<?> message, MessageChannel channel) {
-//                StompHeaderAccessor accessor =
-//                        MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-//
-//                if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-//                    String user = accessor.getFirstNativeHeader("user");
-//                    if (user != null) {
-//                        List<GrantedAuthority> authorities = new ArrayList<>();
-//                        authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-//                        Authentication auth = new UsernamePasswordAuthenticationToken(user, user, authorities);
-//                        SecurityContextHolder.getContext().setAuthentication(auth);
-//                        accessor.setUser(auth);
-//                    }
-//                }
-//
-//                return message;
-//            }
-//        });
-//    }
 }

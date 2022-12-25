@@ -9,15 +9,22 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 import org.springframework.web.reactive.config.CorsRegistry;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
-
+import org.springframework.beans.factory.annotation.Value;
 import java.util.Arrays;
+
 @Configuration
 @EnableWebFlux
 public class WebfluxConfig implements WebFluxConfigurer {
+    @Value("${limdongjin.ignasr.cors.origin}")
+    public String allowedOrigin;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        System.out.println("CORS DEB");
+        System.out.println(allowedOrigin);
+
         registry.addMapping("/api/**")
-                .allowedOriginPatterns("https://kafasr.limdongjin.com", "https://limdongjin-kube.du.r.appspot.com")
+                .allowedOrigins(allowedOrigin)
                 .allowedMethods("PUT", "DELETE", "POST", "OPTIONS", "GET", "HEAD", "PUT")
                 .allowCredentials(true).maxAge(3600)
         ;

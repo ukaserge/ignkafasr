@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1 
+kind: Ingress
+metadata:
+  name: stomasr
+  namespace: limdongjin
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: localhost
+    http:
+      paths:
+      - backend:
+          service:
+            name: stomasr
+            port:
+              number: 8083
+        path: /ws-stomp
+        pathType: Prefix
+status:
+  loadBalancer:
+    ingress:
+    - hostname: localhost

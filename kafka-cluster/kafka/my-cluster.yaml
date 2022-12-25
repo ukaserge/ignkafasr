@@ -2,7 +2,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: my-cluster
-  namespace: limdongjin
+  namespace: kafka-cluster
 spec:
   kafka:
     version: 3.3.1
@@ -26,92 +26,61 @@ spec:
         - ignasr
     config:
       inter.broker.protocol.version: "3.3"
-      #offsets.topic.replication.factor: 1
-      #transaction.state.log.replication.factor: 1
-      #transaction.state.log.min.isr: 1
-      inter.broker.protocol.version: "3.3"
-      # batch.size: 1
-      # log.retention.check.interval.ms: 300000
-      # zookeeper.connection.timeout.ms: 30000
-      # auto.create.topics.enable: "false"
-      # num.partitions: 1
-      # num.recovery.threads.per.data.dir: 4
-      # (default) offsets.topic.num.partitions: 50
-      # min.insync.replicas: 2
-      # num.network.threads: 3
-      # num.io.threads: 8
-      # queue.network.threads: 3
-      # socket.request.max.bytes: 104857600
-      # socket.send.buffer.bytes: 102400
-      # socket.receive.buffer.bytes: 102400
-      # socket.request.max.bytes: 104857600
-      # group.initial.rebalance.delay.ms: 0
-      # ssl.cipher.suites: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
-      # ssl.enabled.protocols: "TLSv1.2"
-      # ssl.protocol: "TLSv1.2"
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+    resources:
+      requests:
+        cpu: 1
+        memory: 3Gi
+      limits:
+        cpu: 2
+        memory: 5Gi
     storage:
       type: jbod
       volumes:      
         - id: 0
           type: persistent-claim
-          size: 10Gi
+          size: 2Gi 
           deleteClaim: false
-    resources:
-      limits:
-        memory: 4G
-      requests:
-        memory: 2G
-    # readinessProbe:
-    #  timeoutSeconds: 20
-    #  initialDelaySeconds: 60
-    #livenessProbe:
-    #  timeoutSeconds: 20
-    #  initialDelaySeconds: 60
   zookeeper:
     replicas: 3
+    resources:
+      requests:
+        cpu: 1
+        memory: 3Gi
+      limits:
+        cpu: 3
+        memory: 6Gi
     storage:
       type: persistent-claim
-      size: 30Gi
+      size: 2Gi
       deleteClaim: false
-    resources:
-      limits:
-        memory: 600Mi
-      requests:
-        memory: 400Mi
-    #readinessProbe:
-    #  timeoutSeconds: 20
-    #  initialDelaySeconds: 60
-    #livenessProbe:
-    #  timeoutSeconds: 20
-    #  initialDelaySeconds: 60
-  entityOperator:
-    #tlsSidecar:
-    #  resources: 
-    #    requests: 
-    #      memory: 512Mi
-    #      cpu: 300m
-    #    limits:
-    #      memory: 2048Mi
-    #      cpu: 1000m
-      #livenessProbe: 
-      #  timeoutSeconds: 20
-      #  initialDelaySeconds: 60
-      #readinessProbe:
-      #  timeoutSeconds: 20
-      #  initialDelaySeconds: 60
+  entityOperator: 
+    tlsSidecar:
+      resources:
+        requests:
+          cpu: 1
+          memory: 1Gi
+        limits:
+          cpu: 2
+          memory: 3Gi
     topicOperator:
-      resources: 
-        requests: 
-          memory: 512Mi
-          cpu: 300m
+      resources:
+        requests:
+          cpu: 1
+          memory: 1Gi
         limits:
-          memory: 2048Mi
-          cpu: 1000m
+          cpu: 2
+          memory: 3Gi
     userOperator: 
-      resources: 
-        requests: 
-          memory: 512Mi
-          cpu: 300m
+      resources:
+        requests:
+          cpu: 1
+          memory: 1Gi
         limits:
-          memory: 2048Mi
-          cpu: 1000m
+          cpu: 2
+          memory: 3Gi
+

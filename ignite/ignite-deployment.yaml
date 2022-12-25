@@ -6,7 +6,6 @@ metadata:
   name: ignite-cluster
   namespace: limdongjin
 spec:
-  # The initial number of pods to be started by Kubernetes.
   replicas: 3
   selector:
     matchLabels:
@@ -43,11 +42,11 @@ spec:
           name: config-vol
         resources:
           limits:
-            cpu: 2000m
-            memory: 4G
+            cpu: 1
+            memory: 2Gi
           requests:
-            cpu: 1500m
-            memory: 3G
+            cpu: 2
+            memory: 4Gi
       volumes:
       - name: config-vol
         configMap:

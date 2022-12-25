@@ -10,10 +10,14 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 import org.springframework.web.socket.server.standard.ServletServerContainerFactoryBean;
 import org.springframework.web.socket.server.support.HttpSessionHandshakeInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
+    @Value("${limdongjin.stomasr.cors.origin}")
+    public String allowedOrigin;
+
     private final WebSocketHandler signalHandler;
 
     public WebSocketConfig(@Qualifier("MySignalHandler") WebSocketHandler signalHandler) {
@@ -24,8 +28,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry
                 .addHandler(signalHandler, "/signal")
-//                .addInterceptors(new HttpSessionHandshakeInterceptor())
-                .setAllowedOriginPatterns("https://kafasr.limdongjin.com", "https://limdongjin-kube.du.r.appspot.com", "http://limdongjin-kube.du.r.appspot.com")
+                .setAllowedOrigins(allowedOrigin)
                 .withSockJS()
         ;
     }

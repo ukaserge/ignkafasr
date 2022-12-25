@@ -18,24 +18,22 @@ spec:
     spec:
       serviceAccountName: spbrain
       containers:
-        - image: gcr.io/limdongjin-kube/spbrain:4.5
+        - image: gcr.io/limdongjin-kube/spbrain:3.3
           name: spbrain
-          resources:
-            limits:
-              cpu: 4000m
-              # ephemeral-storage: 20Gi
-              memory: 3Gi
-            requests:
-              cpu: 1510m
-              # ephemeral-storage: 10Gi
-              memory: 2Gi
           volumeMounts:
             - mountPath: /app/vol
               name: spbrain-vol
               readOnly: false
+          resources:
+            requests:
+              cpu: 2
+              memory: 4Gi
+            limits:
+              cpu: 4
+              memory: 8Gi
           env:
             - name: BOOTSTRAPSERVERS
-              value: my-cluster-kafka-bootstrap:9092
+              value: my-cluster-kafka-bootstrap.kafka-cluster:9092
             - name: KAFKA_USER_NAME
               value: spbrain
             - name: KAFKA_USER_PASSWORD
@@ -51,6 +49,5 @@ spec:
         accessModes: [ "ReadWriteOnce" ]
         resources:
           requests:
-            storage: "15Gi" # make sure to provide enought space for your application data
+            storage: "5Gi" # make sure to provide enought space for your application data
    
-

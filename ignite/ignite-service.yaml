@@ -1,16 +1,15 @@
 apiVersion: v1
 kind: Service
 metadata:
-  # The name must be equal to KubernetesConnectionConfiguration.serviceName
   name: ignite-service
-  # The name must be equal to KubernetesConnectionConfiguration.namespace
   namespace: limdongjin
-  annotations:
-    cloud.google.com/load-balancer-type: "Internal"
+  #annotations:
+  #  cloud.google.com/load-balancer-type: "Internal"
   labels:
     app: ignite
 spec:
-  type: LoadBalancer
+  # type: LoadBalancer
+  type: ClusterIP
   ports:
     - name: rest
       port: 8080
@@ -18,6 +17,18 @@ spec:
     - name: thinclients
       port: 10800
       targetPort: 10800
+    - name: spi-communication
+      port: 47100
+      protocol: TCP
+      targetPort: 47100
+    - name: spi-discovery
+      port: 47500
+      protocol: TCP
+      targetPort: 47500
+    - name: jmx
+      port: 49112
+      protocol: TCP
+      targetPort: 49112
   # Optional - remove 'sessionAffinity' property if the cluster
   # and applications are deployed within Kubernetes
   # sessionAffinity: ClientIP

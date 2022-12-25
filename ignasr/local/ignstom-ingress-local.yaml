@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ignstom
+  namespace: limdongjin
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: ignasr
+            port:
+              number: 8082
+        path: /
+        pathType: Exact 
+  - http:
+      paths:
+      - backend:
+          service:
+            name: ignasr
+            port:
+              number: 8082
+        path: /api/speech
+        pathType: Prefix
+  - http:
+      paths:
+      - backend:
+          service:
+            name: stomasr
+            port:
+              number: 8083
+        path: /ws-stomp
+        pathType: Prefix
+

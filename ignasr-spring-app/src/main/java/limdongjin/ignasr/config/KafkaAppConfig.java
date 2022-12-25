@@ -14,7 +14,7 @@ import java.util.Map;
 
 @Configuration
 public class KafkaAppConfig {
-    @Value("${limdongjin.ignasr.kafka.bootstrapservers}")
+     @Value("${limdongjin.ignasr.kafka.bootstrapservers}")
      public String bootstrapServers;
 
      @Value("${limdongjin.ignasr.kafka.sasljaasconfig}")

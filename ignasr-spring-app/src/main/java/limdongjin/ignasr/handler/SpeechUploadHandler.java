@@ -1,36 +1,32 @@
 package limdongjin.ignasr.handler;
 
 import limdongjin.ignasr.dto.SpeechUploadResponseDto;
-import limdongjin.ignasr.event.IgnasrEvent;
 import limdongjin.ignasr.util.FilePartListJoinPublisher;
 import org.apache.ignite.IgniteClientDisconnectedException;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.client.ClientCache;
-import org.apache.ignite.client.ClientConnectionException;
 import org.apache.ignite.configuration.ClientConfiguration;
 import org.springframework.core.io.buffer.DataBufferLimitException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.multipart.Part;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.beans.factory.annotation.Value;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
 import javax.naming.InsufficientResourcesException;
 import javax.naming.LimitExceededException;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
 
 @Component
 public class SpeechUploadHandler {
+    @Value("${limdongjin.ignasr.cors.origin}")
+    public String allowedOrigin;
+
     public ClientConfiguration clientConfiguration;
     public ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate;
     public SpeechUploadHandler(ClientConfiguration clientConfiguration, ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate){
@@ -85,7 +81,7 @@ public class SpeechUploadHandler {
                 .flatMap(uuid -> Mono.just(new SpeechUploadResponseDto(uuid.toString(), "success upload; "+uuid.toString())))
                 .flatMap(resDto -> ok()
                         .headers(httpHeaders -> {
-                            httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "https://kafasr.limdongjin.com");
+                            httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
                             httpHeaders.addAll(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, Arrays.asList("POST", "PUT", "OPTIONS", "GET", "HEAD"));
                         })
                         .body(Mono.just(resDto), SpeechUploadResponseDto.class)
@@ -140,7 +136,7 @@ public class SpeechUploadHandler {
                 .flatMap(uuid -> Mono.just(new SpeechUploadResponseDto(uuid.toString(), "success register; "+uuid.toString())))
                 .flatMap(resDto -> ok()
                         .headers(httpHeaders -> {
-                            httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:3000");
+                            httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
                             httpHeaders.addAll(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, Arrays.asList("POST", "PUT", "OPTIONS", "GET", "HEAD"));
                         })
                         .body(Mono.just(resDto), SpeechUploadResponseDto.class)

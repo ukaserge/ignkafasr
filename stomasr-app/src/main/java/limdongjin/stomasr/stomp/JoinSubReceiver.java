@@ -38,16 +38,17 @@ public class JoinSubReceiver {
             @Payload UserMessage msg
     ) {
         System.out.println("JOIN");
-        System.out.println(sha);
+        // System.out.println(sha);
         System.out.println(msg);
         System.out.println(sessionId);
 
         var user = sha.getUser();
-        System.out.println(user);
-        template.convertAndSend("/topic/joinok/"+msg.getTargetUserName(), "HELLO; ");
+        // System.out.println(user);
         if(repository.m.containsKey(msg.getTargetUserName())){
             template.convertAndSend("/topic/succ/"+ msg.getTargetUserName(), repository.m.get(msg.getTargetUserName()));
         }
+
+        template.convertAndSend("/topic/joinok/"+msg.getTargetUserName(), "HELLO; ");
     }
 
     @GetMapping("/")
