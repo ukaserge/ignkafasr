@@ -12,24 +12,20 @@ import io
 import os
 import asyncio
 import wave
-# from aiokafka import AIOKafkaConsumer as KafkaConsumer, AIOKafkaProducer as KafkaProducer\
 from confluent_kafka\
     import Message, Consumer as KafkaConsumer, Producer as KafkaProducer, OFFSET_BEGINNING
 import time
+from speechbrain.pretrained import SpectralMaskEnhancement
 
-def get_module_logger(mod_name):
-    """
-    To use this, do logger = get_module_logger(__name__)
-    """
-    logger = logging.getLogger(mod_name)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        '%(asctime)s [%(name)-12s] %(levelname)-8s %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
-    return logger
-
+import sys
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
+    level=logging.DEBUG,
+    datefmt="%H:%M:%S",
+    stream=sys.stderr,
+)
+logger = logging.getLogger("areq")
+logging.getLogger("chardet.charsetprober").disabled = True
 
 # https://pytorch.org/audio/stable/tutorials/audio_resampling_tutorial.html#downsample-48-44-1-khz
 def resample(
@@ -52,124 +48,144 @@ def resample(
     )
 
 
-def blob_to_waveform_and_sample_rate(blob):
+def blob_to_waveform_and_sample_rate(blob, enhancer):
     foo = open("foo.wav",mode="wb")
     foo.write(blob)
     foo.close()
 
-    foo = open("foo.wav", mode="rb")
-    cand_waveform, cand_sample_rate = torchaudio.load(foo, format="wav")
-    foo.close()
+    enhancement("foo.wav", output_filename="e-foo.wav", enhancer=enhancer)
+
+    # foo = open("qoo.wav", mode="rb")
+    cand_waveform, cand_sample_rate = torchaudio.load("e-foo.wav")
+    # foo.close()
 
     return cand_waveform, cand_sample_rate
 
+def enhancement(filepath, output_filename=None, enhancer=None):
+    if enhancer is None:
+        assert False
+
+    noisy = enhancer.load_audio(filepath).unsqueeze(0)
+    enhanced = enhancer.enhance_batch(noisy, lengths=torch.tensor([1.0]))
+
+    if output_filename is not None:
+        torchaudio.save(output_filename, enhanced.cpu(), 16000)
+
+    return enhanced
+
 def consume_and_infer(model, cache, auth_cache):
-    async def f(consumer: KafkaConsumer, producer: KafkaProducer):
+    async def auth_users_key_list():
+        keys = []
+        logger.info("scan start")
+        async with auth_cache.scan() as cursor:
+            async for k, _ in cursor:
+                logger.info('scanning')
+                keys.append(k)
+        return keys
+
+    async def loop_consume_and_infer(consumer, producer):
         consume_keys = dict()
-        get_module_logger(__name__).info('OK : Ready to consume')
+
+        # https://huggingface.co/speechbrain/metricgan-plus-voicebank
+        enhancer = SpectralMaskEnhancement.from_hparams(source="speechbrain/metricgan-plus-voicebank")
+        while True:
+            msg = consumer.poll(1.0)
+            if msg is None:
+                continue
+            elif msg.error():
+                logger.info(msg.error())
+                continue
+
+            logger.info('consume')
+
+            cache_key = uuid.UUID(msg.value().decode('utf-8'))
+
+            logger.info(cache_key)
+
+            if cache_key in consume_keys:
+                continue
+
+            cand = await cache.get(cache_key)
+
+            if cand is None:
+                logger.info("not exists key")
+                continue
+
+            consume_keys[cache_key] = True
+
+            loop = asyncio.get_running_loop()
+            try:
+                cand_waveform, cand_sample_rate = await loop.run_in_executor(
+                    None,
+                    lambda: blob_to_waveform_and_sample_rate(cand, enhancer=enhancer)
+                )
+                # Suppose sample rates of inputs are 16000
+                # cand_waveform = await loop.run_in_executor(
+                #      None,
+                #      lambda: resample(cand_waveform, cand_sample_rate, 16000)
+                # )
+
+                logger.info(cand_waveform.shape)
+            except RuntimeError as e:
+                logger.info(e)
+                logger.info("BAD")
+
+                producer.produce(topic='infer-negative', value=msg.value())
+                producer.poll(0)
+                # producer.flush()
+                consumer.commit()
+                continue
+
+            keys = await auth_users_key_list()
+
+            t = False
+            for k in keys:
+                if k == '' or k == b'' or k is None:
+                    continue
+
+                auth_data = await cache.get(k)
+                if auth_data is None:
+                    continue
+
+                try:
+                    auth_waveform, auth_sample_rate = await loop.run_in_executor(
+                        None,
+                        lambda: blob_to_waveform_and_sample_rate(auth_data, enhancer=enhancer)
+                    )
+
+                    logger.info(auth_waveform.shape)
+
+                    score, prediction = await loop.run_in_executor(
+                        None,
+                        lambda: model.verify_batch(cand_waveform, auth_waveform, threshold=0.4)
+                    )
+                except RuntimeError as e:
+                    logger.info(e)
+                    continue
+
+                logger.info(score)
+                logger.info(prediction)
+
+                if prediction[0]:
+                    logger.info("GOOD")
+                    t = True
+                    break
+
+            logger.info("SEND_AND_WAIT")
+
+            destination_topic = 'infer-positive' if t else 'infer-negative'
+            producer.produce(topic=destination_topic, value=msg.value())
+
+            logger.info("SEND OK")
+
+            producer.poll(0)
+            consumer.commit()
+
+    async def f(consumer: KafkaConsumer, producer: KafkaProducer):
+        logger.info('OK : Ready to consume')
 
         try:
-            while True:
-                msg = consumer.poll(1.0)
-                if msg is None:
-                    # get_module_logger(__name__).info("wait..")
-                    continue
-                elif msg.error():
-                    get_module_logger(__name__).info(msg.error())
-                    continue
-
-                get_module_logger(__name__).info('consume')
-                cache_key = uuid.UUID(msg.value().decode('utf-8'))
-                get_module_logger(__name__).info(cache_key)
-
-                if cache_key in consume_keys:
-                    continue
-
-                cand = await cache.get(cache_key)
-
-                if cand is None:
-                    get_module_logger(__name__).info("not exists key")
-                    continue
-
-                consume_keys[cache_key] = True
-
-                loop = asyncio.get_running_loop()
-                try:
-                    cand_waveform, cand_sample_rate = await loop.run_in_executor(
-                        None,
-                        lambda: blob_to_waveform_and_sample_rate(cand)
-                    )
-                    cand_waveform = await loop.run_in_executor(
-                         None,
-                         lambda: resample(cand_waveform, cand_sample_rate, 16000)
-                    )
-                    get_module_logger(__name__).info(cand_waveform.shape)
-                except RuntimeError as e:
-                    get_module_logger(__name__).info(e)
-                    get_module_logger(__name__).info("BAD")
-                    producer.produce(topic='infer-negative', value=msg.value())
-                    producer.poll(0)
-                    # producer.flush()
-                    consumer.commit()
-                    continue
-
-                
-                get_module_logger(__name__).info("scan start")
-
-                keys = []
-                async with auth_cache.scan() as cursor:
-                    async for k, _ in cursor:
-                        get_module_logger(__name__).info('scanning')
-                        keys.append(k)
-
-                t = False
-                for k in keys:
-                    if k == '' or k == b'' or k is None:
-                        continue
-
-                    auth_data = await cache.get(k)
-                    if auth_data is None:
-                        continue
-
-                    try:
-                        auth_waveform, auth_sample_rate = await loop.run_in_executor(
-                            None,
-                            lambda: blob_to_waveform_and_sample_rate(auth_data)
-                        )
-
-                        get_module_logger(__name__).info(auth_waveform.shape)
-                        # loop = asyncio.get_running_loop()
-                        auth_waveform = await loop.run_in_executor(
-                             None,
-                             lambda: resample(auth_waveform, auth_sample_rate, 16000)
-                        )
-
-                        score, prediction = await loop.run_in_executor(
-                            None,
-                            lambda: model.verify_batch(cand_waveform, auth_waveform, threshold=0.5)
-                        )
-                    except RuntimeError as e:
-                        get_module_logger(__name__).info(e)
-                        continue
-
-                    get_module_logger(__name__).info(score)
-                    get_module_logger(__name__).info(prediction)
-
-                    if prediction[0] and score[0][0].item() > 0.3:
-                        get_module_logger(__name__).info("GOOD")
-                        t = True
-                        break
-                if t:
-                    get_module_logger(__name__).info("SEND_AND_WAIT")
-                    producer.produce(topic='infer-positive', value=msg.value())
-                    get_module_logger(__name__).info("SEND OK")
-                    producer.poll(0)
-                    consumer.commit()
-                else:
-                    get_module_logger(__name__).info("BAD")
-                    producer.produce(topic='infer-negative', value=msg.value())
-                    producer.poll(0)
-                    consumer.commit()
+            await loop_consume_and_infer(consumer, producer)
         finally:
             consumer.close()
             producer.flush()
@@ -180,7 +196,7 @@ def consume_and_infer(model, cache, auth_cache):
 async def connect_ignite(ignite_host, ignite_port, do_something):
     ignite_client = AioClient()
     async with ignite_client.connect(ignite_host, ignite_port):
-        get_module_logger(__name__).info("OK : connection for ignite")
+        logger.info("OK : connection for ignite")
         cache = await ignite_client.get_cache('uploadCache')
         auth_cache = await ignite_client.get_cache('authCache')
         await do_something(cache, auth_cache)
@@ -218,13 +234,13 @@ async def connect_kafka(
         'auto.offset.reset': 'earliest'
     })
 
-    get_module_logger(__name__).info("OK : connection for kafka")
+    logger.info("OK : connection for kafka")
     consumer.subscribe(['user-pending'], on_assign=reset_offset)
-    get_module_logger(__name__).info("START : consumer.start()")
-    get_module_logger(__name__).info("DO : do_something(consumer, producer)")
+    logger.info("START : consumer.start()")
+    logger.info("DO : do_something(consumer, producer)")
 
     while True:
-        time.sleep(1)
+        time.sleep(0.1)
         await do_something(consumer, producer)
 
 
@@ -234,6 +250,8 @@ async def main():
     kafka_user_password = os.environ['KAFKA_USER_PASSWORD']
     ignite_host = 'ignite-service'
     ignite_port = 10800
+
+    # https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb
     model = SpeakerRecognition.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
 
     async def f(cache, auth_cache):
@@ -251,6 +269,4 @@ async def main():
     )
 
 if __name__ == "__main__":
-    # model = SpeakerRecognition.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
-
     asyncio.run(main())
