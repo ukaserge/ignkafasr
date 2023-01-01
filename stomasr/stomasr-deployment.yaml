@@ -33,7 +33,8 @@ spec:
             - name: MYPORT
               value: "8080"
             - name: ALLOWORIGIN
-              value: https://limdongjin-kube.du.r.appspot.com
+              # value: https://limdongjin-kube.du.r.appspot.com
+              value: "https://kafasr.limdongjin.com"
             - name: BOOTSTRAPSERVERS
               value: my-cluster-kafka-bootstrap.kafka-cluster:9092
             - name: SASLJAASCONFIG

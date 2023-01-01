@@ -1,0 +1,3 @@
+[submodule "ignkafasr-web"]
+	path = ignkafasr-web
+	url = https://github.com/limdongjin/ignkafasr-web
