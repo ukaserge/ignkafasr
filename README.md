@@ -21,7 +21,9 @@ kubectl create ns limdongjin
 - strimzi kafka cluster
 
 ```bash
+helm repo add strimzi https://strimzi.io/charts
 helm install my-cluster-op strimzi/strimzi-kafka-operator -n kafka-cluster
+
 kubectl create -f kafka-cluster/kafka/my-cluster.yaml
 kubectl create -f kafka-cluster/topic/
 kubectl create -f kafka-cluster/user/
