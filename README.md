@@ -114,4 +114,4 @@ yarn build && gcloud app deploy
 
 **Build Complete**
 
-- enter "https://ignkasr.limdongjin.com" or other custom domain
+- enter "https://kafasr.limdongjin.com" or other custom domain
