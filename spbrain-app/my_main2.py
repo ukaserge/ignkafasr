@@ -3,6 +3,7 @@
 import logging
 
 import torch
+from speechbrain.processing.speech_augmentation import DropChunk, DropFreq
 from speechbrain.pretrained import SpeakerRecognition
 from torch import tensor
 from pyignite import AioClient
@@ -15,7 +16,7 @@ import wave
 from confluent_kafka\
     import Message, Consumer as KafkaConsumer, Producer as KafkaProducer, OFFSET_BEGINNING
 import time
-from speechbrain.pretrained import SpectralMaskEnhancement
+# from speechbrain.pretrained import SpectralMaskEnhancement
 
 import sys
 logging.basicConfig(
@@ -27,6 +28,8 @@ logging.basicConfig(
 logger = logging.getLogger("areq")
 logging.getLogger("chardet.charsetprober").disabled = True
 
+
+
 # https://pytorch.org/audio/stable/tutorials/audio_resampling_tutorial.html#downsample-48-44-1-khz
 def resample(
         waveform,
@@ -34,33 +37,32 @@ def resample(
         resample_rate,
         lowpass_filter_width=6,
         rolloff=0.99,
-        resampling_method="sinc_interpolation",
+        # resampling_method="sinc_interpolation",
+        resampling_method="kaiser_window",
         beta=None
 ):
-    return torchaudio.functional.resample(
-        waveform,
-        sample_rate,
-        resample_rate,
+    tf = torchaudio.transforms.Resample(
+        orig_freq=sample_rate, new_freq=resample_rate,
         lowpass_filter_width=lowpass_filter_width,
         rolloff=rolloff,
         resampling_method=resampling_method,
         beta=beta
     )
+    waveform = tf(waveform)
+    return waveform
 
-
-def blob_to_waveform_and_sample_rate(blob, enhancer):
+def blob_to_waveform_and_sample_rate(blob):
     foo = open("foo.wav",mode="wb")
     foo.write(blob)
     foo.close()
 
-    enhancement("foo.wav", output_filename="e-foo.wav", enhancer=enhancer)
-
+    # enhancement("foo.wav", output_filename="e-foo.wav", enhancer=enhancer)
     # foo = open("qoo.wav", mode="rb")
-    cand_waveform, cand_sample_rate = torchaudio.load("e-foo.wav")
+    cand_waveform, cand_sample_rate = torchaudio.load("foo.wav")
     # foo.close()
 
     return cand_waveform, cand_sample_rate
-
+"""
 def enhancement(filepath, output_filename=None, enhancer=None):
     if enhancer is None:
         assert False
@@ -72,6 +74,139 @@ def enhancement(filepath, output_filename=None, enhancer=None):
         torchaudio.save(output_filename, enhanced.cpu(), 16000)
 
     return enhanced
+"""
+
+# /speechbrain/pretrained/interfaces.py : separate_file(...)
+def enhancement(wf, fs=16000, enh_model=None):
+    wf = wf.unsqueeze(0)
+    if fs != 8000:
+        # wf = wf.mean(dim=0, keepdim=True)
+        wf = resample(wf, fs, 8000)
+
+    est_sources = enh_model.separate_batch(wf)
+    est_sources = (
+            est_sources / est_sources.abs().max(dim=1, keepdim=True)[0]
+    )
+    return resample(est_sources.squeeze(), 8000, fs)
+
+def time_dropout(wf):
+    dropper = DropChunk(drop_length_low=100, drop_length_high=1000, drop_count_low=1, drop_count_high=10)
+    length = torch.ones(1)
+    signal = wf.unsqueeze(0)
+    dropped_signal = dropper(signal, length)
+    return dropped_signal
+
+def freq_dropout(wf):
+    dropper = DropFreq(
+        drop_count_low=1,
+        drop_count_high=8
+    )
+    signal = wf.unsqueeze(0)
+    dropped_signal = dropper(signal)
+    return dropped_signal
+
+def noise_corruption(wf):
+    corrupter = EnvCorrupt(openrir_folder='.')
+    noise_rev = corrupter(wf.unsqueeze(0), torch.ones(1))
+
+    return noise_rev.squeeze(0)
+
+def noise_reverb(wf):
+    reverb = AddReverb('rirs.csv', rir_scale_factor=1.0)
+    reverbed = reverb(wf.unsqueeze(0), torch.ones(1))
+    return reverbed
+
+def clipping(wf):
+    clipper = DoClip(
+        # clip_low=0.7, clip_high=0.7
+    )
+    clipped_signal = clipper(wf.unsqueeze(0))
+    return clipped_signal
+
+def run_vad(filepath):
+    from speechbrain.pretrained import VAD
+    VAD = VAD.from_hparams(
+        source="speechbrain/vad-crdnn-libriparty",
+        savedir="pretrained_models/vad-crdnn-libriparty"
+    )
+
+    # 1- Let's compute frame-level posteriors first
+    audio_file = filepath
+    prob_chunks = VAD.get_speech_prob_file(
+        audio_file,
+        small_chunk_size=1,
+        large_chunk_size=10
+    )
+    # print(prob_chunks)
+    # 2- Let's apply a threshold on top of the posteriors
+    prob_th = VAD.apply_threshold(
+        prob_chunks,
+        # activation_th=0.8,
+        # deactivation_th=0.4
+        # activation_th=0.7,
+        # deactivation_th=0.4
+    ).float()
+
+    # 3- Let's now derive the candidate speech segments
+    boundaries = VAD.get_boundaries(prob_th)
+
+    # 4- Apply energy VAD within each candidate speech segment (optional)
+    # boundaries = VAD.energy_VAD(
+    #     audio_file, boundaries,
+    #     activation_th=0.7,
+    #     deactivation_th=0.4
+    # )
+
+    # print(boundaries)
+
+    # 5- Merge segments that are too close
+    boundaries = VAD.merge_close_segments(boundaries, close_th=0.3)
+
+    # print(boundaries)
+
+    # 6- Remove segments that are too short
+    # boundaries = VAD.remove_short_segments(boundaries, len_th=0.3)
+
+    # print(boundaries)
+
+    # 7- Double-check speech segments (optional).
+    # boundaries = VAD.double_check_speech_segments(boundaries, audio_file,  speech_th=0.25)
+
+    # print(boundaries)
+
+    VAD.save_boundaries(boundaries)
+
+    return boundaries
+
+# fd if voice active
+def verify(signal1, signal2, model=None):
+    assert model is not None
+
+    seg1 = wf_to_vad_segments(signal1.squeeze())
+    seg2 = wf_to_vad_segments(signal2.squeeze())
+    
+    if len(seg1) == 0 and len(seg2) == 0:
+        print("signal1,2 voice not detected")
+        return torch.tensor([[-1.0]]), torch.tensor([[False]])
+    elif len(seg1) == 0:
+        print("signal1 voice not detected")
+        return torch.tensor([[-1.0]]), torch.tensor([[False]])
+    elif len(seg2) == 0:
+        print("signal2 voice not detected")
+        return torch.tensor([[-1.0]]), torch.tensor([[False]])
+    else:
+        result = model.verify_batch(freq_dropout(signal1.squeeze()).squeeze(), freq_dropout(signal2.squeeze()).squeeze())
+        print(result)
+        return result 
+    
+def wf_to_vad_segments(wf):
+    torchaudio.save("foo.wav", wf.unsqueeze(0), 16000)
+    from speechbrain.pretrained import VAD
+    VAD = VAD.from_hparams(
+        source="speechbrain/vad-crdnn-libriparty",
+        savedir="pretrained_models/vad-crdnn-libriparty"
+    )
+    return VAD.get_segments(boundaries=run_vad("foo.wav"), audio_file="foo.wav")
 
 def consume_and_infer(model, cache, auth_cache):
     async def auth_users_key_list():
@@ -87,7 +222,7 @@ def consume_and_infer(model, cache, auth_cache):
         consume_keys = dict()
 
         # https://huggingface.co/speechbrain/metricgan-plus-voicebank
-        enhancer = SpectralMaskEnhancement.from_hparams(source="speechbrain/metricgan-plus-voicebank")
+        # enhancer = SpectralMaskEnhancement.from_hparams(source="speechbrain/metricgan-plus-voicebank")
         while True:
             msg = consumer.poll(1.0)
             if msg is None:
@@ -117,7 +252,7 @@ def consume_and_infer(model, cache, auth_cache):
             try:
                 cand_waveform, cand_sample_rate = await loop.run_in_executor(
                     None,
-                    lambda: blob_to_waveform_and_sample_rate(cand, enhancer=enhancer)
+                    lambda: blob_to_waveform_and_sample_rate(cand)
                 )
                 # Suppose sample rates of inputs are 16000
                 # cand_waveform = await loop.run_in_executor(
@@ -150,14 +285,15 @@ def consume_and_infer(model, cache, auth_cache):
                 try:
                     auth_waveform, auth_sample_rate = await loop.run_in_executor(
                         None,
-                        lambda: blob_to_waveform_and_sample_rate(auth_data, enhancer=enhancer)
+                        lambda: blob_to_waveform_and_sample_rate(auth_data)
                     )
 
                     logger.info(auth_waveform.shape)
-
+                    
                     score, prediction = await loop.run_in_executor(
                         None,
-                        lambda: model.verify_batch(cand_waveform, auth_waveform, threshold=0.4)
+                        lambda: verify(cand_waveform, auth_waveform, model)
+                        # model.verify_batch(cand_waveform, auth_waveform, threshold=0.4)
                     )
                 except RuntimeError as e:
                     logger.info(e)
