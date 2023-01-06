@@ -1,18 +1,6 @@
 server:
   port: ${MYPORT}
 
-#management:
-#  server:
-#    port: 8089
-#  endpoint:
-#    health:
-#      enabled: true
-
-#logging:
-#  level:
-#    org.springframework.*: DEBUG
-#    io.netty.*: DEBUG
-
 limdongjin:
   stomasr:
     cors:

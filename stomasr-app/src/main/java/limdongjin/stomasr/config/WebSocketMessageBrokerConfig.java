@@ -26,8 +26,6 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
 
         // client -> server
         registry.setApplicationDestinationPrefixes("/app");
-
-//        registry.setUserDestinationPrefix("/secured/user");
     }
 
     @Override

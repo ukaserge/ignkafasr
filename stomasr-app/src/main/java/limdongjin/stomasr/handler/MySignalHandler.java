@@ -12,7 +12,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,16 +22,10 @@ public class MySignalHandler extends TextWebSocketHandler {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // SDP Offer message
     private static final String MSG_TYPE_OFFER = "offer";
-    // SDP Answer message
     private static final String MSG_TYPE_ANSWER = "answer";
-    // New ICE Candidate message
     private static final String MSG_TYPE_ICE = "ice";
-    // join room data message
     private static final String MSG_TYPE_JOIN = "join";
-
-    // leave room data message
     private static final String MSG_TYPE_LEAVE = "leave";
 
     @Override
@@ -51,7 +44,6 @@ public class MySignalHandler extends TextWebSocketHandler {
         }
     }
 
-    // 소켓 메시지 처리
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) {
         System.out.println("HANDLE TEXT MSG");
@@ -71,13 +63,4 @@ public class MySignalHandler extends TextWebSocketHandler {
             e.printStackTrace();
         }
     }
-
-//    private void sendMessage(WebSocketSession session, WebSocketMessageDto message) {
-//        try {
-//            String json = objectMapper.writeValueAsString(message);
-//            session.sendMessage(new TextMessage(json));
-//        } catch (IOException e) {
-//            logger.debug("An error occured: {}", e.getMessage());
-//        }
-//    }
 }
