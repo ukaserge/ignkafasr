@@ -37,8 +37,6 @@ public class IgniteCacheConfig {
     @Value("${limdongjin.ignasr.ignite.addresses}")
     public String addresses;
 
-    // public static final String cacheGroupName = "20GB_Region";
-
     @Bean
     public ClientConfiguration clientConfiguration() throws InterruptedException {
         KubernetesConnectionConfiguration kcfg = new KubernetesConnectionConfiguration();
@@ -48,7 +46,6 @@ public class IgniteCacheConfig {
         ClientConfiguration clientCfg = new ClientConfiguration();
         clientCfg.setAddresses(addresses);
         clientCfg.setAddressesFinder(new ThinClientKubernetesAddressFinder(kcfg));
-        // clientCfg.setAddresses("127.0.0.1:10800", "ignite-service:10800");
         clientCfg.setTcpNoDelay(false);
         clientCfg.setPartitionAwarenessEnabled(true);
         clientCfg.setSendBufferSize(15*1024*1024);

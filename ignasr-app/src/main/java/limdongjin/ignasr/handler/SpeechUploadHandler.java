@@ -2,10 +2,11 @@ package limdongjin.ignasr.handler;
 
 import limdongjin.ignasr.dto.SpeechUploadResponseDto;
 import limdongjin.ignasr.util.FilePartListJoinPublisher;
-import org.apache.ignite.IgniteClientDisconnectedException;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.client.ClientCache;
+import org.apache.ignite.client.IgniteClient;
 import org.apache.ignite.configuration.ClientConfiguration;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.core.io.buffer.DataBufferLimitException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.multipart.Part;
@@ -16,9 +17,12 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.beans.factory.annotation.Value;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
+
 import javax.naming.InsufficientResourcesException;
 import javax.naming.LimitExceededException;
 import java.util.*;
+import java.util.function.Function;
 
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
 
@@ -39,129 +43,85 @@ public class SpeechUploadHandler {
     }
 
     public Mono<ServerResponse> upload(ServerRequest request){
-        var client = Ignition.startClient(clientConfiguration);
-
-//        Mono<UUID> requestUuidMono = Mono.just(UUID.randomUUID());
-
         // :: request -> entryFlux
-        Flux<Map.Entry<String, List<Part>>> entryFlux = request
-                .multipartData()
-                .flatMapIterable(Map::entrySet)
-        ;
+        Flux<Map.Entry<String, List<Part>>> entryFlux = requestToEntryFlux(request);
 
         // :: entryFlux -> uuidMono
-        Mono<UUID> uuidMono = entryFlux
-                .filter(entry -> entry.getKey().equals("name"))
-                .single()
-                .onErrorMap(NoSuchElementException.class, SpeechUploadHandler::missingRequiredFields)
-                .onErrorMap(DataBufferLimitException.class, SpeechUploadHandler::exceedBufferSizeLimit)
-                .flatMap(FilePartListJoinPublisher::entryToBytes)
-                .map(String::new)
-                .map(UUID::fromString)
-        ;
+        Mono<UUID> uuidMono = entryFluxToBytesMono(entryFlux, "name").map(String::new).map(UUID::fromString);
 
-        // :: entryFlux -> bytesMono
-        Mono<byte[]> bytesMono = entryFlux
-                .filter(entry -> entry.getKey().equals("file"))
-                .single()
-                .onErrorMap(NoSuchElementException.class, SpeechUploadHandler::missingRequiredFields)
-                .onErrorMap(DataBufferLimitException.class, SpeechUploadHandler::exceedBufferSizeLimit)
-                .flatMap(FilePartListJoinPublisher::entryToBytes)
-        ;
+        // :: entryFlux -> fileMono
+        Mono<byte[]> fileMono = entryFluxToBytesMono(entryFlux, "file");
 
-        return uuidMono
-                .zipWith(bytesMono)
-                .flatMap(uuid2bytes -> {
-                    ClientCache<UUID, byte[]> uploadCache = client.getOrCreateCache("uploadCache");
-
-                    uploadCache.put(uuid2bytes.getT1(), uuid2bytes.getT2());
-                    return Mono.just(uuid2bytes.getT1());
-                })
+        IgniteClient client = Ignition.startClient(clientConfiguration);
+        return uuidMono.zipWith(fileMono)
+                .flatMap(uploadToCache(client))
                 .doOnNext(this::updateStateToPendingUpload)
                 .flatMap(uuid -> Mono.just(new SpeechUploadResponseDto(uuid.toString(), "success upload; "+uuid.toString())))
-                .flatMap(resDto -> ok()
-                        .headers(httpHeaders -> {
-                            httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
-                            httpHeaders.addAll(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, Arrays.asList("POST", "PUT", "OPTIONS", "GET", "HEAD"));
-                        })
+                .flatMap(
+                    resDto -> ok().headers(this::addCorsHeaders)
                         .body(Mono.just(resDto), SpeechUploadResponseDto.class)
                         .log()
                 )
                 .doOnNext(unused -> client.close())
         ;
     }
+
     public Mono<ServerResponse> register(ServerRequest request){
-        var client = Ignition.startClient(clientConfiguration);
-
-//        Mono<UUID> requestUuidMono = Mono.just(UUID.randomUUID());
-
         // :: request -> entryFlux
-        Flux<Map.Entry<String, List<Part>>> entryFlux = request
-                .multipartData()
-                .flatMapIterable(Map::entrySet)
-        ;
+        Flux<Map.Entry<String, List<Part>>> entryFlux = requestToEntryFlux(request);
 
         // :: entryFlux -> uuidMono
-        Mono<UUID> uuidMono = entryFlux
-                .filter(entry -> entry.getKey().equals("name"))
-                .single()
-                .onErrorMap(NoSuchElementException.class, SpeechUploadHandler::missingRequiredFields)
-                .onErrorMap(DataBufferLimitException.class, SpeechUploadHandler::exceedBufferSizeLimit)
-                .flatMap(FilePartListJoinPublisher::entryToBytes)
-                .map(String::new)
-                .map(UUID::fromString)
-                ;
+        Mono<UUID> uuidMono = entryFluxToBytesMono(entryFlux, "name").map(String::new).map(UUID::fromString);
 
-        // :: entryFlux -> bytesMono
-        Mono<byte[]> bytesMono = entryFlux
-                .filter(entry -> entry.getKey().equals("file"))
-                .single()
-                .onErrorMap(NoSuchElementException.class, SpeechUploadHandler::missingRequiredFields)
-                .onErrorMap(DataBufferLimitException.class, SpeechUploadHandler::exceedBufferSizeLimit)
-                .flatMap(FilePartListJoinPublisher::entryToBytes)
-                ;
+        // :: entryFlux -> fileMono
+        Mono<byte[]> fileMono = entryFluxToBytesMono(entryFlux, "file");
 
-        return uuidMono
-                .zipWith(bytesMono)
-                .flatMap(uuid2bytes -> {
-                    ClientCache<UUID, byte[]> uploadCache = client.getOrCreateCache("uploadCache");
-                    uploadCache.put(uuid2bytes.getT1(), uuid2bytes.getT2());
-                    return Mono.just(uuid2bytes.getT1());
-                })
-                .flatMap(uuid -> {
-                    ClientCache<UUID, UUID> authCache = client.getOrCreateCache("authCache");
-                    authCache.put(uuid, uuid);
-                    return Mono.just(uuid);
-                })
+        IgniteClient client = Ignition.startClient(clientConfiguration);
+        return uuidMono.zipWith(fileMono)
+                .flatMap(uploadToCache(client))
+                .flatMap(uploadToAuthCache(client))
                 .flatMap(uuid -> Mono.just(new SpeechUploadResponseDto(uuid.toString(), "success register; "+uuid.toString())))
                 .flatMap(resDto -> ok()
-                        .headers(httpHeaders -> {
-                            httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
-                            httpHeaders.addAll(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, Arrays.asList("POST", "PUT", "OPTIONS", "GET", "HEAD"));
-                        })
+                        .headers(this::addCorsHeaders)
                         .body(Mono.just(resDto), SpeechUploadResponseDto.class)
                         .log()
                 )
-                .doOnNext(unused -> client.close())
-                ;
+                .doOnNext(unused -> client.close());
     }
-    private UUID sendToIgniteCache(UUID reqUuid, byte[] bytes) {
-        System.out.println(reqUuid);
-        try (var client = Ignition.startClient(clientConfiguration)) {
-            ClientCache<UUID, byte[]> uploadCache = client.getOrCreateCache("uploadCache");
 
-            uploadCache.put(reqUuid, bytes);
-            return reqUuid;
-        } catch (IgniteClientDisconnectedException e) {
-            if (e.getCause() instanceof IgniteClientDisconnectedException) {
-                IgniteClientDisconnectedException cause = (IgniteClientDisconnectedException) e.getCause();
-                cause.reconnectFuture().get(); // Wait until the client is reconnected.
-                var client = Ignition.startClient(clientConfiguration);
-                ClientCache<UUID, byte[]> uploadCache = client.getOrCreateCache("uploadCache");
-            }
-        }
+    @NotNull
+    private static Function<UUID, Mono<? extends UUID>> uploadToAuthCache(IgniteClient client) {
+        return uuid -> {
+            ClientCache<UUID, UUID> authCache = client.getOrCreateCache("authCache");
+            authCache.put(uuid, uuid);
+            return Mono.just(uuid);
+        };
+    }
 
-        throw new RuntimeException();
+    @NotNull
+    private static Function<Tuple2<UUID, byte[]>, Mono<? extends UUID>> uploadToCache(IgniteClient client) {
+        return uuid2bytes -> {
+            ClientCache<UUID, byte[]> cache = client.getOrCreateCache("uploadCache");
+            cache.put(uuid2bytes.getT1(), uuid2bytes.getT2());
+            return Mono.just(uuid2bytes.getT1());
+        };
+    }
+
+    @NotNull
+    private static Mono<byte[]> entryFluxToBytesMono(Flux<Map.Entry<String, List<Part>>> entryFlux, String fieldName) {
+        return entryFlux
+                .filter(entry -> entry.getKey().equals(fieldName))
+                .single()
+                .onErrorMap(NoSuchElementException.class, SpeechUploadHandler::missingRequiredFields)
+                .onErrorMap(DataBufferLimitException.class, SpeechUploadHandler::exceedBufferSizeLimit)
+                .flatMap(FilePartListJoinPublisher::entryToBytes);
+    }
+
+    @NotNull
+    private static Flux<Map.Entry<String, List<Part>>> requestToEntryFlux(ServerRequest request) {
+        return request
+                .multipartData()
+                .flatMapIterable(Map::entrySet);
     }
 
     private UUID updateStateToPendingUpload(UUID reqUuid) {
@@ -171,13 +131,9 @@ public class SpeechUploadHandler {
                 .subscribe();
         return reqUuid;
     }
-
-    private UUID updateStateToSuccessUpload(UUID reqUuid, String userName) {
-        // send to kafka topic
-        reactiveKafkaProducerTemplate.send("user-successupload", reqUuid.toString())
-                .subscribe();
-
-        return reqUuid;
+    private void addCorsHeaders(HttpHeaders httpHeaders) {
+        httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
+        httpHeaders.addAll(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, Arrays.asList("POST", "PUT", "OPTIONS", "GET", "HEAD"));
     }
     private static Throwable missingRequiredFields(NoSuchElementException throwable) {
         throwable.printStackTrace();
@@ -204,4 +160,5 @@ public class SpeechUploadHandler {
     public ClientConfiguration getClientConfiguration() {
         return clientConfiguration;
     }
+
 }
