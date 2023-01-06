@@ -16,9 +16,11 @@ import wave
 from confluent_kafka\
     import Message, Consumer as KafkaConsumer, Producer as KafkaProducer, OFFSET_BEGINNING
 import time
-# from speechbrain.pretrained import SpectralMaskEnhancement
-
+from speechbrain.pretrained import SepformerSeparation
+from itertools import product
 import sys
+from speechbrain.pretrained import VAD as VVAD
+ 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
     level=logging.DEBUG,
@@ -28,69 +30,46 @@ logging.basicConfig(
 logger = logging.getLogger("areq")
 logging.getLogger("chardet.charsetprober").disabled = True
 
-
-
-# https://pytorch.org/audio/stable/tutorials/audio_resampling_tutorial.html#downsample-48-44-1-khz
-def resample(
-        waveform,
-        sample_rate,
-        resample_rate,
-        lowpass_filter_width=6,
-        rolloff=0.99,
-        # resampling_method="sinc_interpolation",
-        resampling_method="kaiser_window",
-        beta=None
-):
-    tf = torchaudio.transforms.Resample(
-        orig_freq=sample_rate, new_freq=resample_rate,
-        lowpass_filter_width=lowpass_filter_width,
-        rolloff=rolloff,
-        resampling_method=resampling_method,
-        beta=beta
-    )
-    waveform = tf(waveform)
-    return waveform
-
 def blob_to_waveform_and_sample_rate(blob):
     foo = open("foo.wav",mode="wb")
     foo.write(blob)
     foo.close()
 
-    # enhancement("foo.wav", output_filename="e-foo.wav", enhancer=enhancer)
-    # foo = open("qoo.wav", mode="rb")
     cand_waveform, cand_sample_rate = torchaudio.load("foo.wav")
-    # foo.close()
 
     return cand_waveform, cand_sample_rate
-"""
-def enhancement(filepath, output_filename=None, enhancer=None):
-    if enhancer is None:
-        assert False
-
-    noisy = enhancer.load_audio(filepath).unsqueeze(0)
-    enhanced = enhancer.enhance_batch(noisy, lengths=torch.tensor([1.0]))
-
-    if output_filename is not None:
-        torchaudio.save(output_filename, enhanced.cpu(), 16000)
-
-    return enhanced
-"""
 
 # /speechbrain/pretrained/interfaces.py : separate_file(...)
-def enhancement(wf, fs=16000, enh_model=None):
-    wf = wf.unsqueeze(0)
-    if fs != 8000:
+#def enhancement(wf, fs=16000, enh_model=None):
+#    wf = wf.unsqueeze(0)
+#    if fs != 8000:
         # wf = wf.mean(dim=0, keepdim=True)
-        wf = resample(wf, fs, 8000)
+#        wf = resample(wf, fs, 8000)
 
-    est_sources = enh_model.separate_batch(wf)
+#    est_sources = enh_model.separate_batch(wf)
+#    est_sources = (
+#            est_sources / est_sources.abs().max(dim=1, keepdim=True)[0]
+#    )
+#    return resample(est_sources.squeeze(), 8000, fs)
+
+def enhancement_file(enh_model, filepath, output_filename):
+    enh_sources = enh_model.separate_file(path=filepath)
+    torchaudio.save(output_filename, enh_sources[:,:,0].detach().cpu(), 16000)
+
+def enhancement_wf(enh_model, wf):
+    torchaudio.save("foo.wav", wf, sample_rate=16000)
+    batch, fs = torchaudio.load("foo.wav")
+    batch = batch.to('cpu')
+
+    est_sources = enh_model.separate_batch(batch)
     est_sources = (
             est_sources / est_sources.abs().max(dim=1, keepdim=True)[0]
     )
-    return resample(est_sources.squeeze(), 8000, fs)
+
+    return est_sources.squeeze()
 
 def time_dropout(wf):
-    dropper = DropChunk(drop_length_low=100, drop_length_high=1000, drop_count_low=1, drop_count_high=10)
+    dropper = DropChunk(drop_length_low=2000, drop_length_high=3000, drop_count_low=1, drop_count_high=20)
     length = torch.ones(1)
     signal = wf.unsqueeze(0)
     dropped_signal = dropper(signal, length)
@@ -105,31 +84,7 @@ def freq_dropout(wf):
     dropped_signal = dropper(signal)
     return dropped_signal
 
-def noise_corruption(wf):
-    corrupter = EnvCorrupt(openrir_folder='.')
-    noise_rev = corrupter(wf.unsqueeze(0), torch.ones(1))
-
-    return noise_rev.squeeze(0)
-
-def noise_reverb(wf):
-    reverb = AddReverb('rirs.csv', rir_scale_factor=1.0)
-    reverbed = reverb(wf.unsqueeze(0), torch.ones(1))
-    return reverbed
-
-def clipping(wf):
-    clipper = DoClip(
-        # clip_low=0.7, clip_high=0.7
-    )
-    clipped_signal = clipper(wf.unsqueeze(0))
-    return clipped_signal
-
-def run_vad(filepath):
-    from speechbrain.pretrained import VAD
-    VAD = VAD.from_hparams(
-        source="speechbrain/vad-crdnn-libriparty",
-        savedir="pretrained_models/vad-crdnn-libriparty"
-    )
-
+def run_vad(VAD, filepath):
     # 1- Let's compute frame-level posteriors first
     audio_file = filepath
     prob_chunks = VAD.get_speech_prob_file(
@@ -157,58 +112,78 @@ def run_vad(filepath):
     #     deactivation_th=0.4
     # )
 
-    # print(boundaries)
-
     # 5- Merge segments that are too close
     boundaries = VAD.merge_close_segments(boundaries, close_th=0.3)
 
-    # print(boundaries)
-
     # 6- Remove segments that are too short
-    # boundaries = VAD.remove_short_segments(boundaries, len_th=0.3)
-
-    # print(boundaries)
+    boundaries = VAD.remove_short_segments(boundaries, len_th=0.2)
 
     # 7- Double-check speech segments (optional).
-    # boundaries = VAD.double_check_speech_segments(boundaries, audio_file,  speech_th=0.25)
+    boundaries = VAD.double_check_speech_segments(boundaries, audio_file,  speech_th=0.25)
 
-    # print(boundaries)
-
-    VAD.save_boundaries(boundaries)
+    # VAD.save_boundaries(boundaries)
 
     return boundaries
 
-# fd if voice active
-def verify(signal1, signal2, model=None):
-    assert model is not None
+def file_to_vad_segments(VAD, file):
+    # seg = VAD.get_segments(boundaries=run_vad(file), audio_file=file)
+    seg = VAD.get_speech_segments(file, small_chunk_size=2, large_chunk_size=60)
+    logger.info(seg)
 
-    seg1 = wf_to_vad_segments(signal1.squeeze())
-    seg2 = wf_to_vad_segments(signal2.squeeze())
+    from speechbrain.dataio.dataio import read_audio
+    ret = []
+    # seg = seg.squeeze().squeeze().squeeze()
+
+    if len(seg) == 0:
+        return []
+    seg = seg.flatten()
+    for s, e in seg.reshape((len(seg)//2, 2)):
+        ret.append(read_audio({
+            "file": file,
+            "start": int(s.item() * 16000.0),
+            "stop": int(e.item() * 16000.0)
+        }))
+        # print_waveform(ret[-1])
+    return ret
+
+def wf_to_vad_segments(VAD, wf):
+    torchaudio.save("foo.wav", wf.unsqueeze(0), 16000)
+    return file_to_vad_segments(VAD, "foo.wav")
+
+# fd if voice active
+def verify(signal1, signal2, model, enh_model, VAD):
+    assert model is not None
+    assert enh_model is not None
+    assert VAD is not None
+
+    seg1 = wf_to_vad_segments(VAD, signal1.squeeze())
+    seg2 = wf_to_vad_segments(VAD, signal2.squeeze())
     
     if len(seg1) == 0 and len(seg2) == 0:
-        print("signal1,2 voice not detected")
+        logger.info("signal1,2 voice not detected")
         return torch.tensor([[-1.0]]), torch.tensor([[False]])
     elif len(seg1) == 0:
-        print("signal1 voice not detected")
+        logger.info("signal1 voice not detected")
         return torch.tensor([[-1.0]]), torch.tensor([[False]])
     elif len(seg2) == 0:
-        print("signal2 voice not detected")
+        logger.info("signal2 voice not detected")
         return torch.tensor([[-1.0]]), torch.tensor([[False]])
-    else:
-        result = model.verify_batch(freq_dropout(signal1.squeeze()).squeeze(), freq_dropout(signal2.squeeze()).squeeze())
-        print(result)
-        return result 
+   
+    ret = (torch.tensor([[-1.0]]), torch.tensor([[False]]))
+    for s1, s2 in product(seg1, seg2):
+        score, prediction = model.verify_batch(s1.squeeze(), s2.squeeze())
+        # score, prediction = model.verify_batch(time_dropout(s1).squeeze(), time_dropout(s2).squeeze())
+        logger.info((score, prediction))
+        if score > ret[0]:
+            ret = (score, prediction)
     
-def wf_to_vad_segments(wf):
+    return ret 
+    
+def wf_to_vad_segments(VAD, wf):
     torchaudio.save("foo.wav", wf.unsqueeze(0), 16000)
-    from speechbrain.pretrained import VAD
-    VAD = VAD.from_hparams(
-        source="speechbrain/vad-crdnn-libriparty",
-        savedir="pretrained_models/vad-crdnn-libriparty"
-    )
-    return VAD.get_segments(boundaries=run_vad("foo.wav"), audio_file="foo.wav")
+    return VAD.get_segments(boundaries=run_vad(VAD, "foo.wav"), audio_file="foo.wav")
 
-def consume_and_infer(model, cache, auth_cache):
+def consume_and_infer(model, cache, auth_cache, enh_model, VAD):
     async def auth_users_key_list():
         keys = []
         logger.info("scan start")
@@ -222,7 +197,6 @@ def consume_and_infer(model, cache, auth_cache):
         consume_keys = dict()
 
         # https://huggingface.co/speechbrain/metricgan-plus-voicebank
-        # enhancer = SpectralMaskEnhancement.from_hparams(source="speechbrain/metricgan-plus-voicebank")
         while True:
             msg = consumer.poll(1.0)
             if msg is None:
@@ -292,11 +266,13 @@ def consume_and_infer(model, cache, auth_cache):
                     
                     score, prediction = await loop.run_in_executor(
                         None,
-                        lambda: verify(cand_waveform, auth_waveform, model)
+                        lambda: verify(cand_waveform, auth_waveform, model, enh_model, VAD)
                         # model.verify_batch(cand_waveform, auth_waveform, threshold=0.4)
                     )
                 except RuntimeError as e:
+                    import traceback
                     logger.info(e)
+                    traceback.print_stack()
                     continue
 
                 logger.info(score)
@@ -376,7 +352,7 @@ async def connect_kafka(
     logger.info("DO : do_something(consumer, producer)")
 
     while True:
-        time.sleep(0.1)
+        # time.sleep(0.1)
         await do_something(consumer, producer)
 
 
@@ -386,16 +362,26 @@ async def main():
     kafka_user_password = os.environ['KAFKA_USER_PASSWORD']
     ignite_host = 'ignite-service'
     ignite_port = 10800
+    
+    enh_model = SepformerSeparation.from_hparams(source="speechbrain/sepformer-wham16k-enhancement", savedir='pretrained_models/sepformer-wham16k-enhancement')
+    enh_model.eval()
 
     # https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb
     model = SpeakerRecognition.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
+    model.eval()
+    
+    VAD = VVAD.from_hparams(
+        source="speechbrain/vad-crdnn-libriparty",
+        savedir="pretrained_models/vad-crdnn-libriparty"
+    )
+    VAD.eval()
 
     async def f(cache, auth_cache):
         await connect_kafka(
             bootstrap_servers,
             kafka_user_name,
             kafka_user_password,
-            consume_and_infer(model, cache, auth_cache)
+            consume_and_infer(model, cache, auth_cache, enh_model, VAD)
         )
 
     await connect_ignite(

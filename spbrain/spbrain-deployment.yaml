@@ -18,7 +18,7 @@ spec:
     spec:
       serviceAccountName: spbrain
       containers:
-        - image: gcr.io/limdongjin-kube/spbrain:5.2
+        - image: gcr.io/limdongjin-kube/spbrain:6.8
           name: spbrain
           volumeMounts:
             - mountPath: /app/vol
