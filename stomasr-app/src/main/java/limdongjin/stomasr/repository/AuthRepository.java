@@ -11,4 +11,16 @@ public class AuthRepository {
     public AuthRepository() {
         this.m = new ConcurrentHashMap<>();
     }
+
+    public void putIfAbsent(String id, String value) {
+        m.putIfAbsent(id, value);
+    }
+
+    public boolean containsKey(String id) {
+        return m.containsKey(id);
+    }
+
+    public String getById(String id) {
+        return m.get(id);
+    }
 }

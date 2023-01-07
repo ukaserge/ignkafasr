@@ -34,9 +34,8 @@ public class JoinSubReceiver {
         System.out.println(msg);
         System.out.println(sessionId);
 
-        var user = sha.getUser();
-        if(repository.m.containsKey(msg.getTargetUserName())){
-            template.convertAndSend("/topic/succ/"+ msg.getTargetUserName(), repository.m.get(msg.getTargetUserName()));
+        if(repository.containsKey(msg.getTargetUserName())){
+            template.convertAndSend("/topic/succ/"+ msg.getTargetUserName(), repository.getById(msg.getTargetUserName()));
         }
 
         template.convertAndSend("/topic/joinok/"+msg.getTargetUserName(), "HELLO; ");

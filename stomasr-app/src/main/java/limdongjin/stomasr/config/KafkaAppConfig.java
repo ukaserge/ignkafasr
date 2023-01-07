@@ -2,8 +2,10 @@ package limdongjin.stomasr.config;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.ScramMechanism;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -30,8 +32,8 @@ public class KafkaAppConfig {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
-        props.put(SaslConfigs.SASL_MECHANISM, "SCRAM-SHA-512");
+        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name);
+        props.put(SaslConfigs.SASL_MECHANISM, ScramMechanism.SCRAM_SHA_512.mechanismName());
         props.put(SaslConfigs.SASL_JAAS_CONFIG, saslJaasConfig);
 
         return new DefaultKafkaConsumerFactory<>(props);
@@ -42,8 +44,8 @@ public class KafkaAppConfig {
         Map<String, Object> configs = new HashMap<>();
 
         configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configs.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
-        configs.put(SaslConfigs.SASL_MECHANISM, "SCRAM-SHA-512");
+        configs.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name); // SASL_PLAINTEXT
+        configs.put(SaslConfigs.SASL_MECHANISM, ScramMechanism.SCRAM_SHA_512.mechanismName()); // SCRAM-SHA-512
         configs.put(SaslConfigs.SASL_JAAS_CONFIG, saslJaasConfig);
 
         return new KafkaAdmin(configs);
