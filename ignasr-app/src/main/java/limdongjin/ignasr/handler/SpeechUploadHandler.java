@@ -44,13 +44,17 @@ public class SpeechUploadHandler {
 
     public Mono<ServerResponse> upload(ServerRequest request){
         // :: request -> entryFlux
-        Flux<Map.Entry<String, List<Part>>> entryFlux = requestToEntryFlux(request);
+        Flux<Map.Entry<String, List<Part>>> entryFlux = FilePartListJoinPublisher.requestToEntryFlux(request);
 
         // :: entryFlux -> uuidMono
-        Mono<UUID> uuidMono = entryFluxToBytesMono(entryFlux, "name").map(String::new).map(UUID::fromString);
+        Mono<UUID> uuidMono = FilePartListJoinPublisher
+                .entryFluxToBytesMono(entryFlux, "name")
+                .map(String::new)
+                .map(UUID::fromString);
 
         // :: entryFlux -> fileMono
-        Mono<byte[]> fileMono = entryFluxToBytesMono(entryFlux, "file");
+        Mono<byte[]> fileMono = FilePartListJoinPublisher
+                .entryFluxToBytesMono(entryFlux, "file");
 
         IgniteClient client = Ignition.startClient(clientConfiguration);
         return uuidMono.zipWith(fileMono)
@@ -68,13 +72,17 @@ public class SpeechUploadHandler {
 
     public Mono<ServerResponse> register(ServerRequest request){
         // :: request -> entryFlux
-        Flux<Map.Entry<String, List<Part>>> entryFlux = requestToEntryFlux(request);
+        Flux<Map.Entry<String, List<Part>>> entryFlux = FilePartListJoinPublisher.requestToEntryFlux(request);
 
         // :: entryFlux -> uuidMono
-        Mono<UUID> uuidMono = entryFluxToBytesMono(entryFlux, "name").map(String::new).map(UUID::fromString);
+        Mono<UUID> uuidMono = FilePartListJoinPublisher
+                .entryFluxToBytesMono(entryFlux, "name")
+                .map(String::new)
+                .map(UUID::fromString);
 
         // :: entryFlux -> fileMono
-        Mono<byte[]> fileMono = entryFluxToBytesMono(entryFlux, "file");
+        Mono<byte[]> fileMono = FilePartListJoinPublisher
+                .entryFluxToBytesMono(entryFlux, "file");
 
         IgniteClient client = Ignition.startClient(clientConfiguration);
         return uuidMono.zipWith(fileMono)
@@ -107,40 +115,23 @@ public class SpeechUploadHandler {
         };
     }
 
-    @NotNull
-    private static Mono<byte[]> entryFluxToBytesMono(Flux<Map.Entry<String, List<Part>>> entryFlux, String fieldName) {
-        return entryFlux
-                .filter(entry -> entry.getKey().equals(fieldName))
-                .single()
-                .onErrorMap(NoSuchElementException.class, SpeechUploadHandler::missingRequiredFields)
-                .onErrorMap(DataBufferLimitException.class, SpeechUploadHandler::exceedBufferSizeLimit)
-                .flatMap(FilePartListJoinPublisher::entryToBytes);
-    }
-
-    @NotNull
-    private static Flux<Map.Entry<String, List<Part>>> requestToEntryFlux(ServerRequest request) {
-        return request
-                .multipartData()
-                .flatMapIterable(Map::entrySet);
-    }
-
-    private UUID updateStateToPendingUpload(UUID reqUuid) {
+    private void updateStateToPendingUpload(UUID reqUuid) {
         // send to kafka topic
         reactiveKafkaProducerTemplate.send("user-pending", reqUuid.toString())
                 // new IgnasrEvent(userName, reqUuid, "pending", "pending"))
                 .subscribe();
-        return reqUuid;
     }
+
     private void addCorsHeaders(HttpHeaders httpHeaders) {
         httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
         httpHeaders.addAll(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, Arrays.asList("POST", "PUT", "OPTIONS", "GET", "HEAD"));
     }
-    private static Throwable missingRequiredFields(NoSuchElementException throwable) {
+    public static Throwable missingRequiredFields(NoSuchElementException throwable) {
         throwable.printStackTrace();
         return new InsufficientResourcesException("required field(s) is missing ");
     }
 
-    private static Throwable exceedBufferSizeLimit(DataBufferLimitException throwable) {
+    public static Throwable exceedBufferSizeLimit(DataBufferLimitException throwable) {
         throwable.printStackTrace();
         return new LimitExceededException("Part exceeded the disk usage limit ");
     }
