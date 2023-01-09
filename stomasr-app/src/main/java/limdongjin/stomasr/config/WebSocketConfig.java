@@ -2,8 +2,10 @@ package limdongjin.stomasr.config;
 
 import limdongjin.stomasr.handler.MySignalHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.websocket.servlet.TomcatWebSocketServletWebServerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -21,6 +23,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     public WebSocketConfig(@Qualifier("MySignalHandler") WebSocketHandler signalHandler) {
         this.signalHandler = signalHandler;
+    }
+
+    @Bean
+    public TomcatWebSocketServletWebServerCustomizer tomcatWebSocketServletWebServerCustomizer() {
+        return new TomcatWebSocketServletWebServerCustomizer();
     }
 
     @Override

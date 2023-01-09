@@ -2,6 +2,9 @@ package limdongjin.stomasr.stomp;
 
 import limdongjin.stomasr.dto.UserMessage;
 import limdongjin.stomasr.repository.AuthRepository;
+import limdongjin.stomasr.service.JoinService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -12,11 +15,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class JoinSubReceiver {
-    private final SimpMessageSendingOperations template;
-    private final AuthRepository repository;
-    public JoinSubReceiver(SimpMessageSendingOperations template, AuthRepository repository) {
-        this.template = template;
-        this.repository = repository;
+    private final static Logger logger = LoggerFactory.getLogger(JoinSubReceiver.class);
+
+    private final JoinService joinService;
+
+    public JoinSubReceiver(final JoinService joinService){
+        this.joinService = joinService;
     }
 
     /**
@@ -28,17 +32,11 @@ public class JoinSubReceiver {
     public void join(
             @Header("simpSessionId") String sessionId,
             SimpMessageHeaderAccessor sha,
-            @Payload UserMessage msg
+            @Payload UserMessage payload
     ) {
-        System.out.println("JOIN");
-        System.out.println(msg);
-        System.out.println(sessionId);
+        logger.info("JOIN " + payload.getTargetUserName() + " && message = " + payload.getMessage() + " && sessionId = " + sessionId);
 
-        if(repository.containsKey(msg.getTargetUserName())){
-            template.convertAndSend("/topic/succ/"+ msg.getTargetUserName(), repository.getById(msg.getTargetUserName()));
-        }
-
-        template.convertAndSend("/topic/joinok/"+msg.getTargetUserName(), "HELLO; ");
+        joinService.join(payload.getTargetUserName());
     }
 
     @GetMapping("/")

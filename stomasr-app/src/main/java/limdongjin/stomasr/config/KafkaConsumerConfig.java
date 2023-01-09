@@ -10,6 +10,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaAdmin;
@@ -18,7 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class KafkaAppConfig {
+@Profile("default")
+public class KafkaConsumerConfig {
      @Value("${limdongjin.stomasr.kafka.bootstrapservers}")
      public String bootstrapServers;
 

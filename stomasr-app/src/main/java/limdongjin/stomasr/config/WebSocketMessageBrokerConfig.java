@@ -8,6 +8,8 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,12 +22,18 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-
         // user endpoint
         registry.enableSimpleBroker("/topic", "/queue");
 
         // client -> server
         registry.setApplicationDestinationPrefixes("/app");
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
+        registry.setMessageSizeLimit(3184700);
+        registry.setSendTimeLimit(20 * 10000);
+        registry.setSendBufferSizeLimit(3 * 512 * 1024);
     }
 
     @Override

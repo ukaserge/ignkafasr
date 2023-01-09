@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class AuthRepository {
-    public ConcurrentHashMap<String, String> m;
+    private final ConcurrentHashMap<String, String> m;
 
     public AuthRepository() {
         this.m = new ConcurrentHashMap<>();
@@ -22,5 +22,9 @@ public class AuthRepository {
 
     public String getById(String id) {
         return m.get(id);
+    }
+
+    public int size() {
+        return m.size();
     }
 }

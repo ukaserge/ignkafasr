@@ -1,13 +1,13 @@
 server:
-  port: ${MYPORT}
+  port: 8088
 
 limdongjin:
   stomasr:
     cors:
-      origin: ${ALLOWORIGIN}
+      origin: localhost:8080
     kafka:
-      bootstrapservers: ${BOOTSTRAPSERVERS}
-      sasljaasconfig: ${SASLJAASCONFIG}
+      bootstrapservers: localhost:9092
+      sasljaasconfig: fakeconfig
 spring:
   kafka:
     consumer:
