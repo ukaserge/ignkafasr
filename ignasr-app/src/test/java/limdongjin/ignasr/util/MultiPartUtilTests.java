@@ -24,9 +24,10 @@ class MultiPartUtilTests {
         ClassPathResource classPathResource = new ClassPathResource("data/foo.wav");
         File file = classPathResource.getFile();
         AudioInputStream expectedAudioInputStream = AudioSystem.getAudioInputStream(file);
+        String label = "ldj";
 
         // Prepare ServerRequest
-        ServerRequest serverRequest = MyTestUtil.prepareServerRequest(classPathResource, name);
+        ServerRequest serverRequest = MyTestUtil.prepareServerRequest(classPathResource, name, label);
 
         // Extract file, name from ServerRequest, Load Audio
         Function<String, Mono<byte[]>> fieldNameToBytesMono = MultiPartUtil.toFunctionThatFieldNameToBytesMono(serverRequest);

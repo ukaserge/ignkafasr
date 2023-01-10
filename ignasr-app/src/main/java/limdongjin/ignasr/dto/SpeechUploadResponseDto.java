@@ -4,9 +4,20 @@ public class SpeechUploadResponseDto {
     public String userName;
     public String message;
 
-    public SpeechUploadResponseDto(String userName, String message) {
+    public String label;
+
+    public SpeechUploadResponseDto(String userName, String message, String label) {
         this.userName = userName;
         this.message = message;
+        this.label = label;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
     }
 
     public String getUserName() {

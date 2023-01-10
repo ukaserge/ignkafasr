@@ -31,13 +31,13 @@ public class MyTestUtil {
         return multipartBodyBuilder;
     }
 
-    public static BodyInserters.MultipartInserter prepareMultipartInserter(ClassPathResource fileFieldValue, String nameFieldValue) {
-        MultipartBodyBuilder multipartBodyBuilder = prepareMultipartBodyBuilder(fileFieldValue, nameFieldValue, "foo");
+    public static BodyInserters.MultipartInserter prepareMultipartInserter(ClassPathResource fileFieldValue, String nameFieldValue, String labelFieldValue) {
+        MultipartBodyBuilder multipartBodyBuilder = prepareMultipartBodyBuilder(fileFieldValue, nameFieldValue, labelFieldValue);
         return BodyInserters.fromMultipartData(multipartBodyBuilder.build());
     }
 
-    public static ServerRequest prepareServerRequest(ClassPathResource fileFieldValue, String nameFieldValue) {
-        MultipartBodyBuilder multipartBodyBuilder = prepareMultipartBodyBuilder(fileFieldValue, nameFieldValue, "foo");
+    public static ServerRequest prepareServerRequest(ClassPathResource fileFieldValue, String nameFieldValue, String labelFieldValue) {
+        MultipartBodyBuilder multipartBodyBuilder = prepareMultipartBodyBuilder(fileFieldValue, nameFieldValue, labelFieldValue);
         MockClientHttpRequest outputMessage = new MockClientHttpRequest(HttpMethod.POST, URI.create("/"));
 
         new MultipartHttpMessageWriter()
@@ -82,6 +82,14 @@ public class MyTestUtil {
         HashMap<K, V> igniteUploadCacheMock = new HashMap<>();
 
         if(stubGet) {
+            Mockito.when(igniteRepository.get(Mockito.eq(cacheName), Mockito.<K>any()))
+                    .thenAnswer(param -> {
+                        K key = param.getArgument(1);
+
+                        return igniteUploadCacheMock.get(key);
+                    });
+        }
+        if(stubPut) {
             Mockito.when(igniteRepository.put(Mockito.eq(cacheName), Mockito.<K>any(), Mockito.<V>any()))
                     .thenAnswer(param -> {
                         K key = param.getArgument(1);
@@ -89,14 +97,6 @@ public class MyTestUtil {
 
                         igniteUploadCacheMock.put(key, value);
                         return key;
-                    });
-        }
-        if(stubPut) {
-            Mockito.when(igniteRepository.get(Mockito.eq(cacheName), Mockito.<K>any()))
-                    .thenAnswer(param -> {
-                        K key = param.getArgument(1);
-
-                        return igniteUploadCacheMock.get(key);
                     });
         }
         if(stubSize){

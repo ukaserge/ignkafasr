@@ -38,6 +38,7 @@ public class SpeechUploadHandler {
         var labelMono = dto.getLabelMono();
 
         Mono<UUID> uploadCacheMono = reqIdMono
+                .zipWith(labelMono, (reqId, label) -> igniteRepository.<UUID, String>put("uuid2label", reqId, label))
                 .zipWith(fileMono, (reqId, file) -> igniteRepository.<UUID, byte[]>put("uploadCache", reqId, file))
         ;
 
@@ -46,13 +47,14 @@ public class SpeechUploadHandler {
         ;
 
         Mono<ServerResponse> prepareServerResponseMono = reqIdMono
-                .flatMap(reqId -> toSuccessResponseDtoMono(reqId, "success upload; "))
-                .flatMap(resDto -> ok()
+                .zipWith(labelMono, (reqId, label) -> toSuccessResponseDtoMono(reqId, "success upload; ", label))
+                .flatMap(resDtoMono -> ok()
                         .headers(SpeechUploadHandler::addCorsHeaders)
-                        .body(Mono.just(resDto), SpeechUploadResponseDto.class)
+                        .body(resDtoMono, SpeechUploadResponseDto.class)
                         .log()
                 )
         ;
+
         return uploadCacheMono
                 .then(sendResFromUserPendingTopic)
                 .then(prepareServerResponseMono);
@@ -65,15 +67,16 @@ public class SpeechUploadHandler {
         var labelMono = dto.getLabelMono();
 
         Mono<UUID> registerAndUploadMono = reqIdMono
+                .zipWith(labelMono, (reqId, label) -> igniteRepository.<UUID, String>put("uuid2label", reqId, label))
                 .zipWith(reqIdMono, (reqId, unused) -> igniteRepository.put("authCache", reqId, reqId))
                 .zipWith(fileMono, (reqId, file) -> igniteRepository.put("uploadCache", reqId, file))
         ;
 
         Mono<ServerResponse> prepareServerResponseMono = reqIdMono
-                .flatMap(reqId -> toSuccessResponseDtoMono(reqId, "success register; "))
-                .flatMap(resDto -> ok()
+                .zipWith(labelMono, (reqId, label) -> toSuccessResponseDtoMono(reqId, "success register; ", label))
+                .flatMap(resDtoMono -> ok()
                         .headers(SpeechUploadHandler::addCorsHeaders)
-                        .body(Mono.just(resDto), SpeechUploadResponseDto.class)
+                        .body(resDtoMono, SpeechUploadResponseDto.class)
                         .log()
                 )
         ;
@@ -86,7 +89,7 @@ public class SpeechUploadHandler {
         httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
         httpHeaders.addAll(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, Arrays.asList("POST", "PUT", "OPTIONS", "GET", "HEAD"));
     }
-    public static Mono<SpeechUploadResponseDto> toSuccessResponseDtoMono(UUID reqId, String msg) {
-        return Mono.just(new SpeechUploadResponseDto(reqId.toString(), String.format("%s; %s", msg, reqId.toString())));
+    public static Mono<SpeechUploadResponseDto> toSuccessResponseDtoMono(UUID reqId, String msg, String label) {
+        return Mono.just(new SpeechUploadResponseDto(reqId.toString(), String.format("%s; %s; %s", msg, reqId.toString(), label), label)) ;
     }
 }

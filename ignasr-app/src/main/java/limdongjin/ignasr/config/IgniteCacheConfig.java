@@ -48,10 +48,11 @@ public class IgniteCacheConfig {
         clientCfg.setReceiveBufferSize(15*1024*1024);
 
         IgniteClient cl = Ignition.startClient(clientCfg);
-        ClientCacheConfiguration cacheCfg = buildDefaultClientCacheConfiguration(cacheName);
+//        ClientCacheConfiguration cacheCfg = buildDefaultClientCacheConfiguration(cacheName);
 //        cl.destroyCache(cacheName);
-        cl.<UUID, byte[]>getOrCreateCache(cacheCfg);
+        cl.<UUID, byte[]>getOrCreateCache(buildDefaultClientCacheConfiguration("uploadCache"));
         cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("authCache"));
+        cl.<UUID, String>getOrCreateCache(buildDefaultClientCacheConfiguration("uuid2label"));
         cl.close();
 
         return clientCfg;
