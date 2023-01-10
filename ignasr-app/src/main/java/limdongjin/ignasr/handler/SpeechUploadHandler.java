@@ -3,10 +3,6 @@ package limdongjin.ignasr.handler;
 import limdongjin.ignasr.dto.AudioRequestDto;
 import limdongjin.ignasr.dto.SpeechUploadResponseDto;
 import limdongjin.ignasr.repository.IgniteRepository;
-import limdongjin.ignasr.util.MyIgniteUtil;
-import org.apache.ignite.Ignition;
-import org.apache.ignite.client.IgniteClient;
-import org.apache.ignite.configuration.ClientConfiguration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
@@ -18,7 +14,6 @@ import reactor.kafka.sender.SenderResult;
 
 import java.util.Arrays;
 import java.util.UUID;
-import java.util.function.BiFunction;
 
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
 

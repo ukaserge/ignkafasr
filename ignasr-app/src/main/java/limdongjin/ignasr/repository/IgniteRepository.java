@@ -3,7 +3,6 @@ package limdongjin.ignasr.repository;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.client.ClientCache;
 import org.apache.ignite.configuration.ClientConfiguration;
-import org.apache.ignite.configuration.IgniteConfiguration;
 import org.springframework.stereotype.Repository;
 
 // TODO refactoring ignite repository OR re-implement
