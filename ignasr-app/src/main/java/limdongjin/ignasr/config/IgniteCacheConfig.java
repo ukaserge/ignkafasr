@@ -38,7 +38,7 @@ public class IgniteCacheConfig {
     public String addresses;
 
     @Bean
-    public ClientConfiguration clientConfiguration() throws InterruptedException {
+    public ClientConfiguration clientConfiguration() {
         KubernetesConnectionConfiguration kcfg = new KubernetesConnectionConfiguration();
         kcfg.setNamespace(namespace); // limdongjin
         kcfg.setServiceName(serviceName); // ignite-service
