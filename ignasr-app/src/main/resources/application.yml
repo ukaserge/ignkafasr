@@ -13,7 +13,10 @@ limdongjin:
     kafka:
       bootstrapservers: ${BOOTSTRAPSERVERS}
       sasljaasconfig: ${SASLJAASCONFIG}
+      security-protocol: SASL_PLAINTEXT
+      sasl-mechanism: SCRAM-SHA-512
     ignite:
+      mode: kubernetes
       namespace: ${NAMESPACE}     # limdongjin
       servicename: ${IGNITESERVICENAME} # ignite-service
       addresses: ${IGNITEADDRESSES}     # ignite-service:10800

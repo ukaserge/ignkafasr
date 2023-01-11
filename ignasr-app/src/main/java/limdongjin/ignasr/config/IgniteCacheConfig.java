@@ -1,5 +1,8 @@
 package limdongjin.ignasr.config;
 
+import limdongjin.ignasr.repository.IgniteRepository;
+import limdongjin.ignasr.repository.IgniteRepositoryImpl;
+import limdongjin.ignasr.repository.MockIgniteRepository;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
@@ -12,6 +15,7 @@ import org.apache.ignite.kubernetes.configuration.KubernetesConnectionConfigurat
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
@@ -33,19 +37,36 @@ public class IgniteCacheConfig {
     @Value("${limdongjin.ignasr.ignite.addresses}")
     public String addresses;
 
+    @Value("${limdongjin.ignasr.ignite.mode}")
+    public String igniteMode;
+
+    @Profile("default")
+    @Bean
+    public IgniteRepository igniteRepository(ClientConfiguration clientConfiguration) {
+        return new IgniteRepositoryImpl(clientConfiguration);
+    }
+
+    @Profile("test")
+    @Bean
+    public IgniteRepository igniteRepository() {
+        return new MockIgniteRepository();
+    }
+
     @Bean
     public ClientConfiguration clientConfiguration() {
-        KubernetesConnectionConfiguration kcfg = new KubernetesConnectionConfiguration();
-        kcfg.setNamespace(namespace); // limdongjin
-        kcfg.setServiceName(serviceName); // ignite-service
 
         ClientConfiguration clientCfg = new ClientConfiguration();
         clientCfg.setAddresses(addresses);
-        clientCfg.setAddressesFinder(new ThinClientKubernetesAddressFinder(kcfg));
         clientCfg.setTcpNoDelay(false);
         clientCfg.setPartitionAwarenessEnabled(true);
         clientCfg.setSendBufferSize(15*1024*1024);
         clientCfg.setReceiveBufferSize(15*1024*1024);
+        if(igniteMode.equals("kubernetes")){
+            KubernetesConnectionConfiguration kcfg = new KubernetesConnectionConfiguration();
+            kcfg.setNamespace(namespace); // limdongjin
+            kcfg.setServiceName(serviceName); // ignite-service
+            clientCfg.setAddressesFinder(new ThinClientKubernetesAddressFinder(kcfg));
+        }
 
         IgniteClient cl = Ignition.startClient(clientCfg);
 //        ClientCacheConfiguration cacheCfg = buildDefaultClientCacheConfiguration(cacheName);
@@ -58,7 +79,7 @@ public class IgniteCacheConfig {
         return clientCfg;
     }
 
-    private ClientCacheConfiguration buildDefaultClientCacheConfiguration(String name) {
+    private static ClientCacheConfiguration buildDefaultClientCacheConfiguration(String name) {
         ClientCacheConfiguration cacheCfg = new ClientCacheConfiguration();
         cacheCfg.setName(name);
         cacheCfg.setCacheMode(cacheMode);
