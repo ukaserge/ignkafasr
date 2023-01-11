@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Profile;
 
 import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
+import java.util.Objects;
 import java.util.UUID;
 
 @Configuration
@@ -40,22 +41,20 @@ public class IgniteCacheConfig {
     @Value("${limdongjin.ignasr.ignite.mode}")
     public String igniteMode;
 
-    @Profile("default")
     @Bean
     public IgniteRepository igniteRepository(ClientConfiguration clientConfiguration) {
+        if(Objects.equals(igniteMode, "mock")){
+            return new MockIgniteRepository();
+        }
         return new IgniteRepositoryImpl(clientConfiguration);
     }
 
-    @Profile("test")
     @Bean
-    public IgniteRepository igniteRepository() {
-        return new MockIgniteRepository();
-    }
-
-    @Bean
-    public ClientConfiguration clientConfiguration() {
-
+    public ClientConfiguration clientConfiguration() throws InterruptedException {
         ClientConfiguration clientCfg = new ClientConfiguration();
+        if(Objects.equals(igniteMode, "mock")){
+            return clientCfg;
+        }
         clientCfg.setAddresses(addresses);
         clientCfg.setTcpNoDelay(false);
         clientCfg.setPartitionAwarenessEnabled(true);
@@ -68,13 +67,22 @@ public class IgniteCacheConfig {
             clientCfg.setAddressesFinder(new ThinClientKubernetesAddressFinder(kcfg));
         }
 
-        IgniteClient cl = Ignition.startClient(clientCfg);
-//        ClientCacheConfiguration cacheCfg = buildDefaultClientCacheConfiguration(cacheName);
-//        cl.destroyCache(cacheName);
-        cl.<UUID, byte[]>getOrCreateCache(buildDefaultClientCacheConfiguration("uploadCache"));
-        cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("authCache"));
-        cl.<UUID, String>getOrCreateCache(buildDefaultClientCacheConfiguration("uuid2label"));
-        cl.close();
+        boolean flag = true;
+        while (flag){
+            Thread.sleep(1000);
+            try (IgniteClient cl = Ignition.startClient(clientCfg)) {
+                //        ClientCacheConfiguration cacheCfg = buildDefaultClientCacheConfiguration(cacheName);
+                //        cl.destroyCache(cacheName);
+                cl.<UUID, byte[]>getOrCreateCache(buildDefaultClientCacheConfiguration("uploadCache"));
+                cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("authCache"));
+                cl.<UUID, String>getOrCreateCache(buildDefaultClientCacheConfiguration("uuid2label"));
+                flag = false;
+            }catch (Exception e){
+                e.printStackTrace();
+                continue;
+            }
+        }
+        Thread.sleep(2000);
 
         return clientCfg;
     }

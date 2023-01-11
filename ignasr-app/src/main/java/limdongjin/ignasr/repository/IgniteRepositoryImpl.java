@@ -2,13 +2,12 @@ package limdongjin.ignasr.repository;
 
 import org.apache.ignite.Ignition;
 import org.apache.ignite.client.ClientCache;
+import org.apache.ignite.client.IgniteClient;
 import org.apache.ignite.configuration.ClientConfiguration;
 import reactor.core.publisher.Mono;
 
 import java.util.concurrent.CompletionStage;
 
-// TODO refactoring ignite repository OR re-implement
-//@Repository
 public class IgniteRepositoryImpl implements IgniteRepository {
     private final ClientConfiguration clientConfiguration;
     public IgniteRepositoryImpl(ClientConfiguration clientConfiguration) {
@@ -16,18 +15,22 @@ public class IgniteRepositoryImpl implements IgniteRepository {
     }
 
     public <K, V> Mono<Mono<K>> putAsync(String cacheName, K key, V value){
-        try(var client = Ignition.startClient(clientConfiguration)){
-            Mono<Mono<K>> completionStageMono = Mono.just(1)
-                    .flatMap(a -> {
-                        CompletionStage<Mono<K>> monoCompletionStage = client.getOrCreateCacheAsync(cacheName)
-                                .thenApply(objectObjectClientCache -> {
-                                    return Mono.fromCompletionStage(objectObjectClientCache.putAsync(key, value).thenApply(v -> key));
-                                });
-                        Mono<Mono<K>> monoMonoK = Mono.fromCompletionStage(monoCompletionStage);
-                        return monoMonoK;
-                    });
-            return completionStageMono;
-        }
+        Mono<IgniteClient> monoClient = Mono.just(clientConfiguration).map(Ignition::startClient);
+        Mono<Mono<K>> monoMonoK = monoClient.flatMap(client -> {
+            CompletionStage<Mono<K>> monoCompletionStage = client
+                    .getOrCreateCacheAsync(cacheName)
+                     // :: IgniteClientFuture<ClientCache>.thenApplyAsync(cache -> monoK)
+                    .thenApplyAsync(cache ->
+                            Mono.fromCompletionStage(cache.putAsync(key, value).thenApply(vo -> key))
+                                .doOnSuccess(unused -> client.close())
+                    )
+            ;
+
+            // monoMonoK
+            return Mono.fromCompletionStage(monoCompletionStage);
+        });
+
+        return monoMonoK;
     }
 
     public <K, V> K put(String cacheName, K key, V value){
@@ -51,4 +54,14 @@ public class IgniteRepositoryImpl implements IgniteRepository {
             return cache.size();
         }
     }
+//    public <K, V> Mono<Mono<K>> putAsync2(String cacheName, K key, V value){
+//            var client = Ignition.startClient(clientConfiguration);
+//
+//            CompletionStage<Mono<K>> monoCompletionStage = client.getOrCreateCacheAsync(cacheName)
+//                    .thenApplyAsync(cache -> {
+//                        return Mono.fromCompletionStage(cache.putAsync(key, value).thenApply(vo -> key)).doOnSuccess(unused -> client.close());
+//                    });
+//            Mono<Mono<K>> monoMonoK = Mono.fromCompletionStage(monoCompletionStage);
+//            return monoMonoK;
+//    }
 }
