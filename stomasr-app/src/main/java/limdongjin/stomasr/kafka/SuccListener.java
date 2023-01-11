@@ -22,7 +22,7 @@ public class SuccListener {
 
     private SuccService succService;
 
-    public SuccListener() {}
+//    public SuccListener() {}
     public SuccListener(SuccService succService) {
         this.succService = succService;
     }
@@ -41,7 +41,12 @@ public class SuccListener {
         }
         logger.info(String.format("onInfer %s && offset is %d", payload, offset));
 
-        succService.onInfer(payload);
+        try {
+            succService.onInfer(payload);
+        }catch (Exception e){
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @KafkaHandler(isDefault = true)

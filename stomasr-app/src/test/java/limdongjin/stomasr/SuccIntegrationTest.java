@@ -8,6 +8,7 @@ import limdongjin.stomasr.stomp.MessageDestinationPrefixConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.*;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -32,8 +34,9 @@ import java.util.UUID;
 @ExtendWith(value = { SpringExtension.class, MockitoExtension.class })
 @ActiveProfiles("test")
 @Testcontainers
-@WebAppConfiguration
-@SpringBootTest
+@DirtiesContext
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 public class SuccIntegrationTest {
     final static String OK_MSG = "OK; ";
     final static String FAIL_MSG = "FAIL; ";
@@ -43,6 +46,7 @@ public class SuccIntegrationTest {
     @DynamicPropertySource
     static void kafkaProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.kafka.bootstrap-servers", kafkaContainer::getBootstrapServers);
+        registry.add("limdongjin.stomasr.kafka.bootstrapservers", kafkaContainer::getBootstrapServers);
     }
     @Autowired
     SuccListener succListener;
@@ -50,21 +54,16 @@ public class SuccIntegrationTest {
     @Autowired
     private AuthRepository authRepository;
 
-    @Autowired
-    @Spy
-    private SuccService succService;
-
     @Mock
     private SimpMessageSendingOperations sendingOperations;
+    private SuccService succService;
 
     @Autowired
     KafkaTemplate kafkaTemplate;
 
     @BeforeEach
     void setUp() {
-        this.succService.setAuthRepository(authRepository);
-        this.succService.setMessageSendingOperations(sendingOperations);
-
+        this.succService = Mockito.spy(new SuccService(sendingOperations, authRepository));
         this.succListener.setSuccService(succService);
     }
 

@@ -16,7 +16,7 @@ public class SuccService {
     private SimpMessageSendingOperations messageSendingOperations;
     private AuthRepository authRepository;
 
-    public SuccService() {}
+//    public SuccService() {}
     public SuccService(SimpMessageSendingOperations messageSendingOperations, AuthRepository authRepository){
         this.messageSendingOperations = messageSendingOperations;
         this.authRepository = authRepository;
@@ -61,11 +61,4 @@ public class SuccService {
     public void setAuthRepository(AuthRepository authRepository) {
         this.authRepository = authRepository;
     }
-//    public void onInferPositive(String payload) throws IllegalArgumentException {
-//        onInfer(payload, "OK; ");
-//    }
-//
-//    public void onInferNegative(String payload) throws IllegalArgumentException{
-//        onInfer(payload, "FAIL; ");
-//    }
 }

@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@Profile("default")
 public class KafkaConsumerConfig {
      @Value("${limdongjin.stomasr.kafka.bootstrapservers}")
      public String bootstrapServers;
@@ -28,16 +27,23 @@ public class KafkaConsumerConfig {
      @Value("${limdongjin.stomasr.kafka.sasljaasconfig}")
      public String saslJaasConfig;
 
+    @Value("${limdongjin.stomasr.kafka.security-protocol}")
+    public String securityProtocol;
+
+    @Value("${limdongjin.stomasr.kafka.sasl-mechanism}")
+    public String saslMechanism;
+
     @Bean
     public ConsumerFactory<Object, Object> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name);
-        props.put(SaslConfigs.SASL_MECHANISM, ScramMechanism.SCRAM_SHA_512.mechanismName());
-        props.put(SaslConfigs.SASL_JAAS_CONFIG, saslJaasConfig);
+        if(securityProtocol.equals(SecurityProtocol.SASL_PLAINTEXT.name)){
+            props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name);
+            props.put(SaslConfigs.SASL_MECHANISM, ScramMechanism.SCRAM_SHA_512.mechanismName());
+            props.put(SaslConfigs.SASL_JAAS_CONFIG, saslJaasConfig);
+        }
 
         return new DefaultKafkaConsumerFactory<>(props);
     }
@@ -47,9 +53,11 @@ public class KafkaConsumerConfig {
         Map<String, Object> configs = new HashMap<>();
 
         configs.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        configs.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name); // SASL_PLAINTEXT
-        configs.put(SaslConfigs.SASL_MECHANISM, ScramMechanism.SCRAM_SHA_512.mechanismName()); // SCRAM-SHA-512
-        configs.put(SaslConfigs.SASL_JAAS_CONFIG, saslJaasConfig);
+        if(securityProtocol.equals(SecurityProtocol.SASL_PLAINTEXT.name)){
+            configs.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SecurityProtocol.SASL_PLAINTEXT.name); // SASL_PLAINTEXT
+            configs.put(SaslConfigs.SASL_MECHANISM, ScramMechanism.SCRAM_SHA_512.mechanismName()); // SCRAM-SHA-512
+            configs.put(SaslConfigs.SASL_JAAS_CONFIG, saslJaasConfig);
+        }
 
         return new KafkaAdmin(configs);
     }

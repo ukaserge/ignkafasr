@@ -1,13 +1,15 @@
 server:
-  port: 8088
+  port: 8089
 
 limdongjin:
   stomasr:
     cors:
       origin: localhost:8080
     kafka:
-      bootstrapservers: localhost:9092
+      bootstrapservers: localhost:29092
       sasljaasconfig: fakeconfig
+      security-protocol: PLAINTEXT
+      sasl-mechanism: foo
 spring:
   kafka:
     consumer:
