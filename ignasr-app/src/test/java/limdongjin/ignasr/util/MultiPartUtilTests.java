@@ -42,6 +42,9 @@ class MultiPartUtilTests {
         Assertions.assertEquals(expectedAudioInputStream.getFrameLength(), actualAudioInputStream.getFrameLength());
 
         System.out.println(actualAudioInputStream.getFormat());
+        // example:
+        // PCM_SIGNED 16000.0 Hz, 16 bit, mono, 2 bytes/frame, little-endian
+
         System.out.println(nameMono.block());
     }
 }

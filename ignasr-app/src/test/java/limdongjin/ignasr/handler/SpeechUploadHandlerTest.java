@@ -2,6 +2,7 @@ package limdongjin.ignasr.handler;
 
 import limdongjin.ignasr.MyTestUtil;
 import limdongjin.ignasr.repository.IgniteRepository;
+import limdongjin.ignasr.repository.MockIgniteRepository;
 import limdongjin.ignasr.router.SpeechRouter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +18,6 @@ import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
@@ -27,11 +27,9 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith({MockitoExtension.class})
 class SpeechUploadHandlerTest {
-    @Mock
     IgniteRepository igniteRepository;
-
     @Mock
     ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate;
 
@@ -39,6 +37,7 @@ class SpeechUploadHandlerTest {
 
     @BeforeEach
     void setUp() {
+        this.igniteRepository = new MockIgniteRepository();
         this.speechUploadHandler = new SpeechUploadHandler(igniteRepository, reactiveKafkaProducerTemplate);
     }
 
@@ -54,9 +53,6 @@ class SpeechUploadHandlerTest {
         String cacheName = "uploadCache";
         String cacheName2 = "uuid2label";
 
-        MyTestUtil.<UUID, byte[]>stubbingIgniteRepository(igniteRepository, cacheName, true, true, true);
-        MyTestUtil.<UUID, String>stubbingIgniteRepository(igniteRepository, cacheName2, false, true, false);
-
         Mockito.when(reactiveKafkaProducerTemplate.send(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(Mono.just(MyTestUtil.emptySenderResultVoid()));
 
@@ -65,7 +61,7 @@ class SpeechUploadHandlerTest {
         System.out.println(request);
 
         // Directly Invoke Handler Function
-        ServerResponse response = speechUploadHandler.upload(request).block();
+        speechUploadHandler.upload(request).block();
 
         // Verify Behaviours
         Assertions.assertEquals(1, igniteRepository.size(cacheName));
@@ -77,19 +73,48 @@ class SpeechUploadHandlerTest {
     }
 
     @Test
-    void uploadHandlerFunctionTestByWebTestClient() throws IOException {
+    void registerHandlerFunctionTestByInvokeDirectly() throws IOException {
         // given file for testing
+        ClassPathResource wavClassPathResource = new ClassPathResource("data/foo.wav");
+        String uuidString = UUID.randomUUID().toString();
+        byte[] fileContent = wavClassPathResource.getInputStream().readAllBytes();
+        String label = "limdongjin";
+
+        // Prepare ServerRequest
+        ServerRequest request = MyTestUtil.prepareServerRequest(wavClassPathResource, uuidString, label);
+        System.out.println(request);
+
+        // Directly Invoke Handler Function
+        speechUploadHandler.register(request)
+                .subscribe(response -> {
+                    // Verify Behaviours
+                    String uploadCache = "uploadCache";
+                    String cacheName2 = "uuid2label";
+                    String cacheName3 = "authCache";
+
+                    Assertions.assertEquals(1, igniteRepository.size(uploadCache));
+                    Assertions.assertEquals(
+                            new String(fileContent),
+                            new String(igniteRepository.<UUID, byte[]>get(uploadCache, UUID.fromString(uuidString)))
+                    );
+
+                    Mockito.verify(reactiveKafkaProducerTemplate, Mockito.times(0)).send(Mockito.anyString(), Mockito.anyString());
+                })
+                .dispose();
+        ;
+    }
+
+    @Test
+    void uploadHandlerFunctionTestByWebTestClient() throws IOException {
+        // Given file for testing
         ClassPathResource wavClassPathResource = new ClassPathResource("data/foo.wav");
         byte[] fileContent = wavClassPathResource.getInputStream().readAllBytes();
         var uuidString = UUID.randomUUID().toString();
         String label = "limdongjin";
+        // Given cache names
+        String uploadCache = "uploadCache";
+        String uuid2label = "uuid2label";
 
-        // Stubbing
-        String cacheName = "uploadCache";
-        String cacheName2 = "uuid2label";
-
-        MyTestUtil.<UUID, byte[]>stubbingIgniteRepository(igniteRepository, cacheName, true, true, true);
-        MyTestUtil.<UUID, String>stubbingIgniteRepository(igniteRepository, cacheName2, false, true, false);
         Mockito.when(reactiveKafkaProducerTemplate.send(Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(Mono.just(MyTestUtil.emptySenderResultVoid()));
 
@@ -122,26 +147,26 @@ class SpeechUploadHandlerTest {
         Mockito.verify(reactiveKafkaProducerTemplate, Mockito.times(1)).send(Mockito.eq("user-pending"), Mockito.eq(uuidString));
 
         // must store blob to ignite
-        Assertions.assertEquals(1, igniteRepository.size(cacheName));
-        assertEquals(new String(fileContent), new String(igniteRepository.<UUID, byte[]>get(cacheName, UUID.fromString(uuidString))));
+        Assertions.assertEquals(1, igniteRepository.size(uploadCache));
+        assertEquals(new String(fileContent), new String(igniteRepository.<UUID, byte[]>get(uploadCache, UUID.fromString(uuidString))));
+
+        assertEquals(1, igniteRepository.size(uuid2label));
+        assertEquals(label, igniteRepository.<UUID, String>get(uuid2label, UUID.fromString(uuidString)));
+
+        assertEquals(0, igniteRepository.size("authCache"));
     }
 
     @Test
-    void registerHandlerFunctionTestByWebTestClient() throws IOException {
-        // given file for testing
+    void registerHandlerFunctionTestByWebTestClient() throws IOException, InterruptedException {
+        // Given file for testing
         ClassPathResource wavClassPathResource = new ClassPathResource("data/foo.wav");
         byte[] fileContent = wavClassPathResource.getInputStream().readAllBytes();
         var uuidString = UUID.randomUUID().toString();
         String label = "ignite";
-
-        // Stubbing
-        String cacheNameForUpload = "uploadCache";
-        String cacheNameForAuth = "authCache";
-        String cacheName2 = "uuid2label";
-
-        MyTestUtil.<UUID, byte[]>stubbingIgniteRepository(igniteRepository, cacheNameForUpload, true, true, true);
-        MyTestUtil.<UUID, UUID>stubbingIgniteRepository(igniteRepository, cacheNameForAuth, true, true, true);
-        MyTestUtil.<UUID, String>stubbingIgniteRepository(igniteRepository, cacheName2, false, true, false);
+        // Given cache names
+        String uploadCache = "uploadCache";
+        String authCache = "authCache";
+        String uuid2label = "uuid2label";
 
         // Prepare MultipartBody
         BodyInserters.MultipartInserter multipartInserter = MyTestUtil.prepareMultipartInserter(wavClassPathResource, uuidString, label);
@@ -150,7 +175,6 @@ class SpeechUploadHandlerTest {
         WebTestClient webTestClient = WebTestClient.bindToRouterFunction(new SpeechRouter().speechRoute(speechUploadHandler))
                 .configureClient()
                 .build();
-
         EntityExchangeResult<byte[]> entityExchangeResult = webTestClient
                 .post().uri("/api/speech/register")
                 .accept(MediaType.MULTIPART_FORM_DATA)
@@ -172,13 +196,14 @@ class SpeechUploadHandlerTest {
         Mockito.verify(reactiveKafkaProducerTemplate, Mockito.never()).send(Mockito.eq("user-pending"), Mockito.eq(uuidString));
 
         // must store blob to ignite cache
-        Assertions.assertEquals(1, igniteRepository.size(cacheNameForUpload));
-        assertEquals(new String(fileContent), new String(igniteRepository.<UUID, byte[]>get(cacheNameForUpload, UUID.fromString(uuidString))));
+        Assertions.assertEquals(1, igniteRepository.size(uploadCache));
+        assertEquals(new String(fileContent), new String(igniteRepository.<UUID, byte[]>get(uploadCache, UUID.fromString(uuidString))));
 
         // must store registered uuid to ignite cache
-        assertEquals(1, igniteRepository.size(cacheNameForAuth));
-        assertEquals(UUID.fromString(uuidString), igniteRepository.get(cacheNameForAuth, UUID.fromString(uuidString)));
+        assertEquals(1, igniteRepository.size(authCache));
+        assertEquals(UUID.fromString(uuidString), igniteRepository.get(authCache, UUID.fromString(uuidString)));
 
-        System.out.println(new String(entityExchangeResult.getResponseBody()));
+        assertEquals(1, igniteRepository.size(uuid2label));
+        assertEquals(label, igniteRepository.<UUID, String>get(uuid2label, UUID.fromString(uuidString)));
     }
 }
