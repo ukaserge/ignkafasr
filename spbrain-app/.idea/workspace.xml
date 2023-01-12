@@ -2,7 +2,23 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="844e16e9-9e06-403e-a8bb-230ecfd61aba" name="변경" comment="">
-      <change beforePath="$PROJECT_DIR$/my_main2.py" beforeDir="false" afterPath="$PROJECT_DIR$/my_main2.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../ignasr-app/src/main/resources/application-test.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ignasr-app/src/main/java/limdongjin/ignasr/config/IgniteCacheConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../ignasr-app/src/main/java/limdongjin/ignasr/config/IgniteCacheConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ignasr-app/src/main/java/limdongjin/ignasr/config/KafkaAppConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../ignasr-app/src/main/java/limdongjin/ignasr/config/KafkaAppConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ignasr-app/src/main/java/limdongjin/ignasr/handler/SpeechUploadHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/../ignasr-app/src/main/java/limdongjin/ignasr/handler/SpeechUploadHandler.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ignasr-app/src/main/java/limdongjin/ignasr/util/MultiPartUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/../ignasr-app/src/main/java/limdongjin/ignasr/util/MultiPartUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ignasr-app/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../ignasr-app/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ignasr-app/src/test/java/limdongjin/ignasr/util/MultiPartUtilTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/../ignasr-app/src/test/java/limdongjin/ignasr/util/MultiPartUtilTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/speechbrain-app.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/speechbrain-app.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../spbrain/spbrain-deployment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../spbrain/spbrain-deployment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../stomasr-app/src/main/java/limdongjin/stomasr/config/KafkaConsumerConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../stomasr-app/src/main/java/limdongjin/stomasr/config/KafkaConsumerConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../stomasr-app/src/main/java/limdongjin/stomasr/kafka/SuccListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/../stomasr-app/src/main/java/limdongjin/stomasr/kafka/SuccListener.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../stomasr-app/src/main/java/limdongjin/stomasr/service/SuccService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../stomasr-app/src/main/java/limdongjin/stomasr/service/SuccService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../stomasr-app/src/main/resources/application-test.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../stomasr-app/src/main/resources/application-test.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../stomasr-app/src/test/java/limdongjin/stomasr/SuccIntegrationTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/../stomasr-app/src/test/java/limdongjin/stomasr/SuccIntegrationTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,6 +60,7 @@
       <option name="presentableId" value="Default" />
       <updated>1672453847353</updated>
       <workItem from="1672453850985" duration="7554000" />
+      <workItem from="1673332549017" duration="15167000" />
     </task>
     <servers />
   </component>
