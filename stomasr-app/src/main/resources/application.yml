@@ -8,6 +8,8 @@ limdongjin:
     kafka:
       bootstrapservers: ${BOOTSTRAPSERVERS}
       sasljaasconfig: ${SASLJAASCONFIG}
+      security-protocol: ${SECURITY_PROTOCOL}
+      sasl-mechanism: ${SASL_MECHANISM} 
 spring:
   kafka:
     consumer:
