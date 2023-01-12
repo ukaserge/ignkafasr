@@ -41,6 +41,10 @@ spec:
                 secretKeyRef:
                   name: spbrain
                   key: "password"
+            - name: IGNITE_SERVICE_NAME
+              value: ignite-service
+            - name: IGNITE_PORT
+              value: 10800
  
   volumeClaimTemplates:
     - metadata:
