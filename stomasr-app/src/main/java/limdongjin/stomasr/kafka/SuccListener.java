@@ -22,7 +22,6 @@ public class SuccListener {
 
     private SuccService succService;
 
-//    public SuccListener() {}
     public SuccListener(SuccService succService) {
         this.succService = succService;
     }

@@ -1,35 +1,48 @@
 package limdongjin.stomasr;
 
+import limdongjin.stomasr.dto.UserMessage;
 import limdongjin.stomasr.kafka.KafkaConstants;
 import limdongjin.stomasr.kafka.SuccListener;
 import limdongjin.stomasr.repository.AuthRepository;
+import limdongjin.stomasr.service.JoinService;
 import limdongjin.stomasr.service.SuccService;
+import limdongjin.stomasr.stomp.JoinSubReceiver;
 import limdongjin.stomasr.stomp.MessageDestinationPrefixConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.core.*;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
+import org.springframework.messaging.simp.stomp.*;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.web.socket.client.standard.StandardWebSocketClient;
+import org.springframework.web.socket.messaging.WebSocketStompClient;
+import org.springframework.web.socket.sockjs.client.SockJsClient;
+import org.springframework.web.socket.sockjs.client.Transport;
+import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @ExtendWith(value = { SpringExtension.class, MockitoExtension.class })
 @ActiveProfiles("test")
@@ -53,16 +66,23 @@ public class SuccIntegrationTest {
 
     @Autowired
     private AuthRepository authRepository;
-
-    @Mock
+    @Autowired
     private SimpMessageSendingOperations sendingOperations;
+
     private SuccService succService;
+
+    @Autowired
+    private JoinService joinService;
+
+    @Autowired
+    private JoinSubReceiver joinSubReceiver;
 
     @Autowired
     KafkaTemplate kafkaTemplate;
 
     @BeforeEach
     void setUp() {
+        this.sendingOperations = Mockito.spy(sendingOperations);
         this.succService = Mockito.spy(new SuccService(sendingOperations, authRepository));
         this.succListener.setSuccService(succService);
     }
@@ -95,6 +115,102 @@ public class SuccIntegrationTest {
         Mockito.verify(sendingOperations, Mockito.never()).convertAndSend(Mockito.anyString());
         Assertions.assertEquals(0, authRepository.size());
     }
+
+    @Test
+    void clientSideStompTest() throws ExecutionException, InterruptedException, TimeoutException {
+        var joinServiceSpy = Mockito.spy(joinService);
+        joinSubReceiver.setJoinService(joinServiceSpy);
+
+        String url = "ws://localhost:8089/ws-stomp";
+
+        List<Transport> webSocketTransports = Collections.singletonList(new WebSocketTransport(new StandardWebSocketClient()));
+        WebSocketStompClient webSocketStompClient = new WebSocketStompClient(new SockJsClient(webSocketTransports));
+        webSocketStompClient.setMessageConverter(new MappingJackson2MessageConverter());
+
+        StompSession stompSession = webSocketStompClient.connect(url, new MyStompSessionHandlerAdapter()).get(5, TimeUnit.SECONDS);
+
+        var reqId = UUID.randomUUID().toString();
+        var destination = MessageDestinationPrefixConstants.SUCC + reqId;
+
+        stompSession.send("/app/join", new UserMessage(reqId, "hello world!"));
+        Thread.sleep(5000);
+
+        // if client send msg to '/app/join', then joinSubReceiver receive msg and invoke JoinService
+        Mockito.verify(joinServiceSpy, Mockito.atLeast(1)).join(Mockito.anyString());
+
+        StompFrameHandler stompFrameHandler = new MyStompFrameHandler();
+        StompSession.Subscription subscription = stompSession.subscribe(destination, stompFrameHandler);
+
+        Thread.sleep(5000);
+
+        System.out.println(subscription);
+
+        kafkaTemplate.send(KafkaConstants.TOPIC_INFER, UUID.fromString(reqId) + ",OK; hello");
+        Thread.sleep(5000);
+
+        // if receive msg from 'infer', then handle and invoke convertAndSend
+        Mockito.verify(sendingOperations, Mockito.atLeast(1)).convertAndSend(Mockito.eq(destination), Mockito.anyString());
+    }
+    private class MyStompFrameHandler implements StompFrameHandler {
+        @Override
+        public Type getPayloadType(StompHeaders headers) {
+            return UserMessage.class;
+        }
+
+        @Override
+        public void handleFrame(StompHeaders headers, Object payload) {
+            System.out.println("[stompFrameHandler] handleFrame");
+            System.out.println(payload);
+        }
+    }
+    private class MyStompSessionHandlerAdapter extends StompSessionHandlerAdapter {
+        @Override
+        public Type getPayloadType(StompHeaders headers) {
+            System.out.println("getPayLoadType");
+            System.out.println(headers.toString());
+
+            return UserMessage.class;
+        }
+
+        @Override
+        public void handleFrame(StompHeaders headers, Object payload) {
+            System.out.println("handleFrame");
+            if(payload != null){
+                System.out.println("handle frame with payload: {}" + payload);
+            }
+            super.handleFrame(headers, payload);
+        }
+
+        @Override
+        public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
+            System.out.println("afterConnected");
+            System.out.println(session.toString());
+            System.out.println(connectedHeaders.toString());
+
+            super.afterConnected(session, connectedHeaders);
+        }
+
+        @Override
+        public void handleException(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable exception) {
+            System.out.println("handleException");
+            System.out.println(session);
+            System.out.println(command);
+            System.out.println(new String(payload));
+            exception.printStackTrace();
+
+            super.handleException(session, command, headers, payload, exception);
+        }
+
+        @Override
+        public void handleTransportError(StompSession session, Throwable exception) {
+            System.out.println("handleTransportError");
+            System.out.println(session);
+            exception.printStackTrace();
+
+            super.handleTransportError(session, exception);
+        }
+    }
+
 }
 
 //@TestPropertySource (properties = {

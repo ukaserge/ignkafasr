@@ -23,6 +23,9 @@ public class SuccService {
     }
 
     public void onInfer(String payload) throws IllegalArgumentException {
+        logger.info("onInfer");
+        logger.info(payload);
+
         String[] tmp = payload.split(",");
         if(tmp.length != 2){
             logger.error("invalid payload format");
@@ -45,6 +48,7 @@ public class SuccService {
             throw new IllegalArgumentException("invalid message format");
         }
 
+        logger.info("convertAndSend {}", MessageDestinationPrefixConstants.SUCC + reqId);
         messageSendingOperations.convertAndSend(MessageDestinationPrefixConstants.SUCC + reqId, msg);
         authRepository.putIfAbsent(reqId, msg);
     }

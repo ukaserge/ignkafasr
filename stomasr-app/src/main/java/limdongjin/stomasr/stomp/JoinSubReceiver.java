@@ -17,9 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class JoinSubReceiver {
     private final static Logger logger = LoggerFactory.getLogger(JoinSubReceiver.class);
 
-    private final JoinService joinService;
 
-    public JoinSubReceiver(final JoinService joinService){
+    private JoinService joinService;
+
+    public JoinSubReceiver(JoinService joinService){
         this.joinService = joinService;
     }
 
@@ -42,5 +43,9 @@ public class JoinSubReceiver {
     @GetMapping("/")
     public String index(){
         return "hello world !!!";
+    }
+
+    public void setJoinService(JoinService joinService) {
+        this.joinService = joinService;
     }
 }
