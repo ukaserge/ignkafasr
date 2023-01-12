@@ -15,9 +15,9 @@
     <name>ignasr</name>
     <description>ignasr</description>
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <java.version>11</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <java.version>17</java.version>
         <ignite.version>2.14.0</ignite.version>
         <jkube-maven-plugin-version>1.10.1</jkube-maven-plugin-version>
     </properties>
@@ -93,7 +93,6 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -101,13 +100,29 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <from>
+                        <image>eclipse-temurin:17-jre@sha256:402c656f078bc116a6db1e2e23b08c6f4a78920a2c804ea4c2d3e197f1d6b47c</image>
+                    </from>
+                    <container>
+                        <jvmFlags>
+                            <jvmFlag>--add-opens=java.base/java.nio=ALL-UNNAMED</jvmFlag>
+                            <jvmFlag>--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED</jvmFlag>
+                            <jvmFlag>--add-opens=java.base/java.io=ALL-UNNAMED</jvmFlag>
+                        </jvmFlags>
+                    </container>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.2</version>
                 <configuration>
-                    <!-- <skipTests>true</skipTests> -->
-                    <argLine>-Xms4g -Xmx4g -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:+DisableExplicitGC -Djava.net.preferIPv4Stack=true --add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
-                 </configuration> 
+                    <argLine>--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED  --add-opens=java.base/java.nio=ALL-UNNAMED  --add-opens=java.base/java.io=ALL-UNNAMED</argLine>
+                 </configuration>
             </plugin>
         </plugins>
     </build>

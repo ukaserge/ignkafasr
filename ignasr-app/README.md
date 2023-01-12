@@ -18,9 +18,14 @@
 # Integration Test (requirements: docker engine running)
 ./mvnw "-Dtest=SpeechUploadHandlerIntegrationTest.java" test
 
-# BUILD 
+# BUILD to local registry
+./mvnw clean
+./mvnw compile -DskipTests com.google.cloud.tools:jib-maven-plugin:dockerBuild -Dimage=limdongjin/ignasr
+
+# Build to Google Container Registry
 # must change image repository, name, version
-./mvnw -DskipTests package
-./mvnw -DskipTests com.google.cloud.tools:jib-maven-plugin:build -Dimage=gcr.io/limdongjin-kube/ignasr:v3
+./mvnw clean
+./mvnw compile -DskipTests com.google.cloud.tools:jib-maven-plugin:build -Dimage=gcr.io/limdongjin-kube/ignasr:v3
+
 ```
  
