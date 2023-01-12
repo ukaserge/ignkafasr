@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="73709531-7a17-4530-a08c-62fde61ec6e0" name="Changes" comment="backup" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExternalProjectsData">
+    <projectState path="$PROJECT_DIR$">
+      <ProjectState />
+    </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="stomasr" type="f1a62948:ProjectNode" />
+              </path>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="stomasr" type="f1a62948:ProjectNode" />
+                <item name="Run Configurations" type="7b0102dc:RunConfigurationsNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="JUnit5 Test Class" />
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="ProjectErrors" />
+  </component>
+  <component name="ProjectId" id="2IT5OpGK3BLLt7Q6fOdSAHJBmqI" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RequestMappingsPanelOrder0&quot;: &quot;0&quot;,
+    &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
+    &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
+    &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrary&quot;: &quot;JUnit5&quot;,
+    &quot;com.intellij.testIntegration.createTest.CreateTestDialog.defaultLibrarySuperClass.JUnit5&quot;: &quot;&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/imdongjin/workspace/kube-kafka/ignkaf/stomasr-app&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;,
+    &quot;spring.configuration.checksum&quot;: &quot;c15b7f6f7db1cea8d71ff285510a1be4&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CreateTestDialog.Recents.Supers">
+      <recent name="" />
+    </key>
+    <key name="CreateTestDialog.RecentsKey">
+      <recent name="limdongjin.stomasr.service" />
+      <recent name="limdongjin.stomasr.kafka" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Gradle.stomasr-app [test --tests &quot;SuccListener*&quot; --tests &quot;SuccService*&quot;]">
+    <configuration name="stomasr-app [clean]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="clean" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="stomasr-app [test --tests &quot;SuccListener*&quot; --tests &quot;SuccService*&quot;]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="test" />
+            <option value="--tests" />
+            <option value="&quot;SuccListener*&quot;" />
+            <option value="--tests" />
+            <option value="&quot;SuccService*&quot;" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="SuccIntegrationTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="stomasr" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="limdongjin.stomasr.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="ALTERNATIVE_JRE_PATH" value="temurin-17" />
+      <option name="PACKAGE_NAME" value="limdongjin.stomasr" />
+      <option name="MAIN_CLASS_NAME" value="limdongjin.stomasr.SuccIntegrationTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SuccIntegrationTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="stomasr" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="limdongjin.stomasr.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="limdongjin.stomasr" />
+      <option name="MAIN_CLASS_NAME" value="limdongjin.stomasr.SuccIntegrationTest" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SuccIntegrationTest.testStomp (1)" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="stomasr" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="limdongjin.stomasr.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="limdongjin.stomasr" />
+      <option name="MAIN_CLASS_NAME" value="limdongjin.stomasr.SuccIntegrationTest" />
+      <option name="METHOD_NAME" value="testStomp" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SuccIntegrationTest.testStomp" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="stomasr" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="limdongjin.stomasr.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="limdongjin.stomasr" />
+      <option name="MAIN_CLASS_NAME" value="limdongjin.stomasr.SuccIntegrationTest" />
+      <option name="METHOD_NAME" value="testStomp" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="StomasrApplication (1)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+      <module name="stomasr.main" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="limdongjin.stomasr.StomasrApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="StomasrApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+      <option name="ACTIVE_PROFILES" value="test" />
+      <module name="stomasr" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="limdongjin.stomasr.StomasrApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Gradle.stomasr-app [clean]" />
+      <item itemvalue="Gradle.stomasr-app [test --tests &quot;SuccListener*&quot; --tests &quot;SuccService*&quot;]" />
+      <item itemvalue="JUnit.SuccIntegrationTest.testStomp (1)" />
+      <item itemvalue="JUnit.SuccIntegrationTest.testStomp" />
+      <item itemvalue="JUnit.SuccIntegrationTest" />
+      <item itemvalue="Spring Boot.StomasrApplication (1)" />
+      <item itemvalue="Spring Boot.StomasrApplication" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Gradle.stomasr-app [clean]" />
+        <item itemvalue="Gradle.stomasr-app [test --tests &quot;SuccListener*&quot; --tests &quot;SuccService*&quot;]" />
+        <item itemvalue="JUnit.SuccIntegrationTest.testStomp (1)" />
+        <item itemvalue="JUnit.SuccIntegrationTest.testStomp" />
+        <item itemvalue="JUnit.SuccIntegrationTest" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SpringBeansView">
+    <option name="beanDetailsProportion" value="0.64634144" />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="73709531-7a17-4530-a08c-62fde61ec6e0" name="Changes" comment="" />
+      <created>1670192704326</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1670192704326</updated>
+      <workItem from="1670192707815" duration="14168000" />
+      <workItem from="1670210124576" duration="1880000" />
+      <workItem from="1670213169411" duration="728000" />
+      <workItem from="1670215900971" duration="132000" />
+      <workItem from="1670216080664" duration="689000" />
+      <workItem from="1670419284979" duration="1099000" />
+      <workItem from="1670486966044" duration="3830000" />
+      <workItem from="1670537403867" duration="3482000" />
+      <workItem from="1670605801975" duration="2450000" />
+      <workItem from="1670644252118" duration="23079000" />
+      <workItem from="1672998408950" duration="400000" />
+      <workItem from="1673110003231" duration="1157000" />
+      <workItem from="1673140243416" duration="37220000" />
+      <workItem from="1673224000403" duration="19029000" />
+      <workItem from="1673332260872" duration="257000" />
+      <workItem from="1673348213864" duration="6222000" />
+      <workItem from="1673421306621" duration="1876000" />
+      <workItem from="1673442684638" duration="14031000" />
+      <workItem from="1673551617575" duration="462000" />
+      <workItem from="1673552109319" duration="1599000" />
+      <workItem from="1673554203874" duration="39000" />
+    </task>
+    <task id="LOCAL-00001" summary="backup">
+      <created>1670208694139</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1670208694140</updated>
+    </task>
+    <task id="LOCAL-00002" summary="backup">
+      <created>1670208788395</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1670208788395</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
+    <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$/.." />
+    </ignored-roots>
+    <MESSAGE value="backup" />
+    <option name="LAST_COMMIT_MESSAGE" value="backup" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>

@@ -9,21 +9,19 @@
 
 - you can test or build using this script:
 ```bash
-./mvnw clean
+./gradlew clean
 
 # Unit Test
-./mvnw "-Dtest=SuccListener*,SuccService*" test
+./gradlew test --tests "SuccListener*" --tests "SuccService*"
 
 # Integration Test (requirements: docker engine running)
-./mvnw "-Dtest=SuccIntegration*" test
+./gradlew test --tests "SuccIntegration*"
 
 # BUILD to local registry
-./mvnw clean
-./mvnw compile -DskipTests com.google.cloud.tools:jib-maven-plugin:dockerBuild -Dimage=limdongjin/stomasr
+./gradlew jib:dockerBuild
 
 # Build to Google Container Registry
 # must change image repository, name, version
-./mvnw clean
-./mvnw compile -DskipTests com.google.cloud.tools:jib-maven-plugin:build -Dimage=gcr.io/limdongjin-kube/stomasr:v3
+./gradlew jib --image=gcr.io/limdongjin-kube/stomasr
 ```
 
