@@ -4,3 +4,4 @@ torchaudio==0.13.0
 speechbrain
 aiokafka
 confluent-kafka
+typing
