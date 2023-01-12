@@ -18,6 +18,7 @@ import reactor.core.scheduler.Schedulers;
 import reactor.kafka.sender.SenderResult;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,10 +43,7 @@ public class MyTestUtil {
 
         Mono<Void> writeMono = new MultipartHttpMessageWriter()
                 .write(Mono.just(multipartBodyBuilder.build()), null, MediaType.MULTIPART_FORM_DATA, outputMessage, null)
-                .subscribeOn(Schedulers.parallel())
-                .publishOn(Schedulers.parallel())
         ;
-//                .block(Duration.ofSeconds(5));
 
         return writeMono
                 .then(Mono.just(1))
@@ -57,12 +55,8 @@ public class MyTestUtil {
                             .body(outputMessage.getBody());
                     return ServerRequest.create(MockServerWebExchange.from(request), Collections.emptyList());
                 })
-                .subscribeOn(Schedulers.parallel())
-                .publishOn(Schedulers.parallel())
-                .block()
+                .block(Duration.ofSeconds(5))
         ;
-
-//        return ServerRequest.create(MockServerWebExchange.from(request), Collections.emptyList());
     }
 
     public static SenderResult<Void> emptySenderResultVoid() {

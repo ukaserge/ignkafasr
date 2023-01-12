@@ -69,7 +69,7 @@ public class IgniteCacheConfig {
 
         boolean flag = true;
         while (flag){
-            Thread.sleep(1000);
+//            Thread.sleep(1000);
             try (IgniteClient cl = Ignition.startClient(clientCfg)) {
                 //        ClientCacheConfiguration cacheCfg = buildDefaultClientCacheConfiguration(cacheName);
                 //        cl.destroyCache(cacheName);
