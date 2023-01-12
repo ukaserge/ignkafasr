@@ -105,8 +105,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.22.2</version>
                 <configuration>
-                    <skipTests>true</skipTests>
-                </configuration>
+                    <!-- <skipTests>true</skipTests> -->
+                    <argLine>-Xms4g -Xmx4g -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:+DisableExplicitGC -Djava.net.preferIPv4Stack=true --add-opens=java.base/java.nio=ALL-UNNAMED</argLine>
+                 </configuration> 
             </plugin>
         </plugins>
     </build>
