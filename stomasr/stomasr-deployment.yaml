@@ -37,6 +37,10 @@ spec:
               value: "https://kafasr.limdongjin.com"
             - name: BOOTSTRAPSERVERS
               value: my-cluster-kafka-bootstrap.kafka-cluster:9092
+            - name: SECURITY_PROTOCOL
+              value: "SASL_PLAINTEXT"
+            - name: SASL_MECHANISM
+              value: "SCRAM-SHA-512"
             - name: SASLJAASCONFIG
               valueFrom:
                 secretKeyRef:
