@@ -17,10 +17,13 @@
 # Integration Test (requirements: docker engine running)
 ./mvnw "-Dtest=SuccIntegration*" test
 
-# BUILD
-# must change image repository, name, version
-./mvnw -DskipTests package
+# BUILD to local registry
+./mvnw clean
+./mvnw compile -DskipTests com.google.cloud.tools:jib-maven-plugin:dockerBuild -Dimage=limdongjin/stomasr
 
-./mvnw -DskipTests com.google.cloud.tools:jib-maven-plugin:build -Dimage=gcr.io/limdongjin-kube/stomasr:v3
+# Build to Google Container Registry
+# must change image repository, name, version
+./mvnw clean
+./mvnw compile -DskipTests com.google.cloud.tools:jib-maven-plugin:build -Dimage=gcr.io/limdongjin-kube/stomasr:v3
 ```
 
