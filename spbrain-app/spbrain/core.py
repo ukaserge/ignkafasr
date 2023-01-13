@@ -411,10 +411,11 @@ async def main():
         f
     )
 
-if __name__ == "__main__":
+
+def async_main():
     asyncio.run(main())
 
-
+# if __name__ == "__main__":
 
 ############################################################################################
 # /speechbrain/pretrained/interfaces.py : separate_file(...)

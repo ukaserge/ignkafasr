@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spbrain"
+version = "0.0.1"
+authors = [
+    { name="limdongjin", email="geniuslim27@gmail.com" },
+]
+description = "Speechbrain inference with Apache Kafka, Apache Ignite"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pyignite==0.6.0",
+    "torch>=1.13.1",
+    "torchaudio>=0.13.0",
+    "speechbrain",
+    "aiokafka",
+    "confluent-kafka",
+    "typing",
+    "testcontainers",
+    "pytest"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/limdongjin/ignkafasr"
+#"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+
+[tool.setuptools.packages.find]
+# All the following settings are optional:
+#where = ["src"]  # ["."] by default
+include = ["spbrain*", "tests"]  # ["*"] by default
+#exclude = ["tests*"]  # empty by default
+namespaces = false  # true by default
+
+#[project.entry-points."spbrain-main"]
+#spbrain-main = "core:async_main"
+[project.entry-points."tests"]
+spbrain-test = "test:canLoad"
+
+[project.scripts]
+async-main = "spbrain.core:async_main"

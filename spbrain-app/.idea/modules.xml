@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/speechbrain-app.iml" filepath="$PROJECT_DIR$/.idea/speechbrain-app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/spbrain-app.iml" filepath="$PROJECT_DIR$/.idea/spbrain-app.iml" />
     </modules>
   </component>
 </project>

@@ -5,3 +5,4 @@ speechbrain
 aiokafka
 confluent-kafka
 typing
+testcontainers

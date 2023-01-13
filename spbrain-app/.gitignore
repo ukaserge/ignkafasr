@@ -1,1 +1,4 @@
 pretrained_models
+p retrained_model_checkpoints
+tmp/
+__pycache__

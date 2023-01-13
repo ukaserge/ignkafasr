@@ -88,7 +88,7 @@
       <recent name="limdongjin.stomasr.kafka" />
     </key>
   </component>
-  <component name="RunManager" selected="Gradle.stomasr-app [test --tests &quot;SuccListener*&quot; --tests &quot;SuccService*&quot;]">
+  <component name="RunManager" selected="Gradle.stomasr-app [test --tests &quot;SuccIntegration*&quot;]">
     <configuration name="stomasr-app [clean]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
       <ExternalSystemSettings>
         <option name="executionName" />
@@ -101,6 +101,29 @@
         <option name="taskNames">
           <list>
             <option value="clean" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <method v="2" />
+    </configuration>
+    <configuration name="stomasr-app [test --tests &quot;SuccIntegration*&quot;]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="test" />
+            <option value="--tests" />
+            <option value="&quot;SuccIntegration*&quot;" />
           </list>
         </option>
         <option name="vmOptions" />
@@ -134,24 +157,6 @@
       <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
       <DebugAllEnabled>false</DebugAllEnabled>
       <method v="2" />
-    </configuration>
-    <configuration name="SuccIntegrationTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="stomasr" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="limdongjin.stomasr.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="ALTERNATIVE_JRE_PATH" value="temurin-17" />
-      <option name="PACKAGE_NAME" value="limdongjin.stomasr" />
-      <option name="MAIN_CLASS_NAME" value="limdongjin.stomasr.SuccIntegrationTest" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
     </configuration>
     <configuration name="SuccIntegrationTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="stomasr" />
@@ -218,21 +223,21 @@
       </method>
     </configuration>
     <list>
+      <item itemvalue="Gradle.stomasr-app [test --tests &quot;SuccIntegration*&quot;]" />
       <item itemvalue="Gradle.stomasr-app [clean]" />
       <item itemvalue="Gradle.stomasr-app [test --tests &quot;SuccListener*&quot; --tests &quot;SuccService*&quot;]" />
       <item itemvalue="JUnit.SuccIntegrationTest.testStomp (1)" />
       <item itemvalue="JUnit.SuccIntegrationTest.testStomp" />
-      <item itemvalue="JUnit.SuccIntegrationTest" />
       <item itemvalue="Spring Boot.StomasrApplication (1)" />
       <item itemvalue="Spring Boot.StomasrApplication" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Gradle.stomasr-app [test --tests &quot;SuccIntegration*&quot;]" />
         <item itemvalue="Gradle.stomasr-app [clean]" />
         <item itemvalue="Gradle.stomasr-app [test --tests &quot;SuccListener*&quot; --tests &quot;SuccService*&quot;]" />
         <item itemvalue="JUnit.SuccIntegrationTest.testStomp (1)" />
         <item itemvalue="JUnit.SuccIntegrationTest.testStomp" />
-        <item itemvalue="JUnit.SuccIntegrationTest" />
       </list>
     </recent_temporary>
   </component>
@@ -267,7 +272,7 @@
       <workItem from="1673442684638" duration="14031000" />
       <workItem from="1673551617575" duration="462000" />
       <workItem from="1673552109319" duration="1599000" />
-      <workItem from="1673554203874" duration="39000" />
+      <workItem from="1673554203874" duration="369000" />
     </task>
     <task id="LOCAL-00001" summary="backup">
       <created>1670208694139</created>
