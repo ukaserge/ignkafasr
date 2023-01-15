@@ -1,13 +1,28 @@
 # SPBRAIN_VERSION=5.6
 # docker build -t spbrain:$SPBRAIN_VERSION . && docker tag spbrain:$SPBRAIN_VERSION gcr.io/limdongjin-kube/spbrain:$SPBRAIN_VERSION && docker push gcr.io/limdongjin-kube/spbrain:$SPBRAIN_VERSION
-FROM python:3.8-buster
-RUN apt-get update && \
-    apt-get install --no-install-suggests --no-install-recommends --yes python3-venv gcc libpython3-dev && pip install setuptools --upgrade
-# COPY tmp/tmp2/requirements.txt /requirements.txt
-# RUN pip install -r /requirements.txt
-# COPY . /app
-COPY . /app
+FROM python:3.9-slim-buster as builder
+
+RUN pip install --upgrade pip && pip install poetry 
+
 WORKDIR /app
 
-RUN python -m pip install .
-ENTRYPOINT ["python", "-m", "spbrain"]
+COPY pyproject.toml poetry.toml README.md ./
+COPY spbrain ./spbrain
+
+RUN poetry config virtualenvs.path .venv
+RUN poetry config virtualenvs.prompt sp-prompt
+RUN poetry build
+
+
+FROM python:3.9-slim-buster 
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv ./.venv
+COPY --from=builder /app/dist ./dist
+
+RUN .venv/bin/python3.9 -m pip install torch==1.12.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
+RUN .venv/bin/python3.9 -m pip install dist/*.whl
+
+CMD ["/app/.venv/bin/python3.9", "-m", "spbrain.core"]
+# CMD ["sleep", "1000"]

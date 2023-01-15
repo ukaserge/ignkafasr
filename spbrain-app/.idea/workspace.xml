@@ -1,22 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e683dc32-483e-405d-b87f-c12efe4b0059" name="변경" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/spbrain-app.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/spbrain/__main__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/__main__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tmp/setup.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/speechbrain-app.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/tmp/tmp2/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../stomasr-app/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../stomasr-app/.idea/gradle.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../stomasr-app/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../stomasr-app/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="e683dc32-483e-405d-b87f-c12efe4b0059" name="변경" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -127,7 +112,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1673579814464</updated>
-      <workItem from="1673579816945" duration="14938000" />
+      <workItem from="1673579816945" duration="15071000" />
     </task>
     <servers />
   </component>

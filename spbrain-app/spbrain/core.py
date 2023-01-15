@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 
+print("import start")
+
 import logging
 from uuid import UUID
 
 import torch
+
 from pyignite.aio_cache import AioCache
 from pyignite.cursors import AioScanCursor
+from pyignite.datatypes import ExpiryPolicy
+from pyignite.datatypes.prop_codes import PROP_NAME, PROP_EXPIRY_POLICY
+
 from speechbrain.pretrained import SpeakerRecognition, SepformerSeparation, VAD
 from pyignite import AioClient
 import torchaudio
@@ -20,14 +26,9 @@ from typing import Callable, Awaitable, Optional, Dict, Tuple, List, Coroutine, 
 from speechbrain.dataio.dataio import read_audio
 from torch import Tensor
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
-    level=logging.DEBUG,
-    datefmt="%H:%M:%S",
-    stream=sys.stderr,
-)
-logger = logging.getLogger("areq")
-logging.getLogger("chardet.charsetprober").disabled = True
+print("import ok")
+
+logger: Any 
 
 
 def blob_to_waveform_and_sample_rate(
@@ -49,7 +50,7 @@ def run_vad(vad_model: VAD, filepath: str):
     prob_chunks = vad_model.get_speech_prob_file(
         audio_file,
         small_chunk_size=1,
-        large_chunk_size=10
+        large_chunk_size=60
     )
     # print(prob_chunks)
     # 2- Let's apply a threshold on top of the posteriors
@@ -236,7 +237,7 @@ def consume_and_infer(
 
             flag = False
             auth_uuid = None
-            match_score = None
+            match_score = torch.tensor([-1.0])
             for key in keys:
                 if key == '' or key == b'' or key is None:
                     continue
@@ -265,6 +266,7 @@ def consume_and_infer(
 
                 logger.info(score)
                 logger.info(prediction)
+                match_score = max(score, match_score)
 
                 if prediction[0]:
                     logger.info("GOOD")
@@ -278,17 +280,19 @@ def consume_and_infer(
             destination_topic = 'infer'
             if flag:
                 label = await uuid_to_label_cache.get(auth_uuid)
+                if label is None:
+                    label = "unknown"
                 message = str(cache_key) + ",OK " + label + "; score=" + str(match_score)
                 producer.produce(topic=destination_topic, value=message)
                 # example:
                 # b9ae83f2-f0a7-408c-b002-b9d2ba546a22,OK dongjin21; score=tensor([[0.3660]])
-                pass
             else:
                 message = str(cache_key) + ",FAIL; "
+                if match_score == torch.tensor([-1.0]):
+                    message += "voice is not detected"
                 producer.produce(topic=destination_topic, value=message)
                 # example:
                 # b9ae83f2-f0a7-408c-b002-b9d2ba546a21,FAIL;
-                pass
 
             producer.poll(0)
             consumer.commit()
@@ -312,12 +316,17 @@ async def connect_ignite(
         ignite_port: int,
         do_something: Callable[[AioCache, AioCache, AioCache], Awaitable]
 ) -> None:
+    ignite_cfg = lambda name: {
+        PROP_NAME: name,
+        PROP_EXPIRY_POLICY: ExpiryPolicy(create=timedelta(seconds=300))
+    }
+
     ignite_client = AioClient()
     async with ignite_client.connect(ignite_host, ignite_port):
         logger.info("OK : connection for ignite")
-        cache = await ignite_client.get_or_create_cache('uploadCache')
-        auth_cache = await ignite_client.get_or_create_cache('authCache')
-        uuid_to_label_cache = await ignite_client.get_or_create_cache('uuid2label')
+        cache = await ignite_client.get_or_create_cache(ignite_cfg('uploadCache'))
+        auth_cache = await ignite_client.get_or_create_cache(ignite_cfg('authCache'))
+        uuid_to_label_cache = await ignite_client.get_or_create_cache(ignite_cfg('uuid2label'))
 
         await do_something(cache, auth_cache, uuid_to_label_cache)
 
@@ -372,6 +381,7 @@ async def connect_kafka(
 
 
 async def main():
+    logger.info("main")
     bootstrap_servers = os.environ['BOOTSTRAPSERVERS']
     try:
         kafka_user_name = os.environ['KAFKA_USER_NAME']
@@ -415,7 +425,18 @@ async def main():
 def async_main():
     asyncio.run(main())
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
+        level=logging.DEBUG,
+        datefmt="%H:%M:%S",
+        stream=sys.stderr,
+    )
+    logger = logging.getLogger("areq")
+    logging.getLogger("chardet.charsetprober").disabled = True
+
+    logger.info("logger start")
+    async_main()
 
 ############################################################################################
 # /speechbrain/pretrained/interfaces.py : separate_file(...)
