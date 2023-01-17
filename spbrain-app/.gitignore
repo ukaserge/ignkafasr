@@ -1,4 +1,5 @@
 dist
+.venv
 pretrained_models
 pretrained_model_checkpoints
 tmp/

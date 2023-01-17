@@ -5,6 +5,7 @@ description = ""
 authors = ["limdongjin <geniuslim27@gmail.com>"]
 readme = "README.md"
 packages = [{include = "spbrain"}]
+
 [tool.poetry.dependencies]
 python = ">=3.8"
 pyignite = "^0.6.0"

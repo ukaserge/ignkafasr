@@ -11,6 +11,7 @@ from pyignite.aio_cache import AioCache
 from pyignite.cursors import AioScanCursor
 from pyignite.datatypes import ExpiryPolicy
 from pyignite.datatypes.prop_codes import PROP_NAME, PROP_EXPIRY_POLICY
+from datetime import timedelta
 
 from speechbrain.pretrained import SpeakerRecognition, SepformerSeparation, VAD
 from pyignite import AioClient
@@ -26,10 +27,9 @@ from typing import Callable, Awaitable, Optional, Dict, Tuple, List, Coroutine, 
 from speechbrain.dataio.dataio import read_audio
 from torch import Tensor
 
-print("import ok")
+print("import ok!!")
 
 logger: Any 
-
 
 def blob_to_waveform_and_sample_rate(
         blob: bytes
@@ -52,7 +52,7 @@ def run_vad(vad_model: VAD, filepath: str):
         small_chunk_size=1,
         large_chunk_size=60
     )
-    # print(prob_chunks)
+
     # 2- Let's apply a threshold on top of the posteriors
     prob_th = vad_model.apply_threshold(
         prob_chunks,
@@ -65,13 +65,6 @@ def run_vad(vad_model: VAD, filepath: str):
     # 3- Let's now derive the candidate speech segments
     boundaries = vad_model.get_boundaries(prob_th)
 
-    # 4- Apply energy VAD within each candidate speech segment (optional)
-    # boundaries = VAD.energy_VAD(
-    #     audio_file, boundaries,
-    #     activation_th=0.7,
-    #     deactivation_th=0.4
-    # )
-
     # 5- Merge segments that are too close
     boundaries = vad_model.merge_close_segments(boundaries, close_th=0.3)
 
@@ -80,8 +73,6 @@ def run_vad(vad_model: VAD, filepath: str):
 
     # 7- Double-check speech segments (optional).
     boundaries = vad_model.double_check_speech_segments(boundaries, audio_file, speech_th=0.25)
-
-    # VAD.save_boundaries(boundaries)
 
     return boundaries
 
@@ -436,54 +427,6 @@ if __name__ == "__main__":
     logging.getLogger("chardet.charsetprober").disabled = True
 
     logger.info("logger start")
+
     async_main()
 
-############################################################################################
-# /speechbrain/pretrained/interfaces.py : separate_file(...)
-#def enhancement(wf, fs=16000, enh_model=None):
-#    wf = wf.unsqueeze(0)
-#    if fs != 8000:
-# wf = wf.mean(dim=0, keepdim=True)
-#        wf = resample(wf, fs, 8000)
-
-#    est_sources = enh_model.separate_batch(wf)
-#    est_sources = (
-#            est_sources / est_sources.abs().max(dim=1, keepdim=True)[0]
-#    )
-#    return resample(est_sources.squeeze(), 8000, fs)
-
-# def enhancement_file(enh_model, filepath, output_filename):
-#     enh_sources = enh_model.separate_file(path=filepath)
-#     torchaudio.save(output_filename, enh_sources[:,:,0].detach().cpu(), 16000)
-
-# def enhancement_wf(enh_model, wf):
-#     torchaudio.save("foo.wav", wf, sample_rate=16000)
-#     batch, fs = torchaudio.load("foo.wav")
-#     batch = batch.to('cpu')
-#
-#     est_sources = enh_model.separate_batch(batch)
-#     est_sources = (
-#             est_sources / est_sources.abs().max(dim=1, keepdim=True)[0]
-#     )
-#
-#     return est_sources.squeeze()
-
-# def time_dropout(wf):
-#     dropper = DropChunk(drop_length_low=2000, drop_length_high=3000, drop_count_low=1, drop_count_high=20)
-#     length = torch.ones(1)
-#     signal = wf.unsqueeze(0)
-#     dropped_signal = dropper(signal, length)
-#     return dropped_signal
-
-# def freq_dropout(wf):
-# dropper = DropFreq(
-#     drop_count_low=1,
-#     drop_count_high=8
-# )
-# signal = wf.unsqueeze(0)
-# dropped_signal = dropper(signal)
-# return dropped_signal
-
-# def wf_to_vad_segments(VAD, wf):
-#     torchaudio.save("foo.wav", wf.unsqueeze(0), 16000)
-#     return VAD.get_segments(boundaries=run_vad(VAD, "foo.wav"), audio_file="foo.wav")
