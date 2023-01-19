@@ -9,11 +9,13 @@ packages = [{include = "spbrain"}]
 [tool.poetry.dependencies]
 python = ">=3.8"
 pyignite = "^0.6.0"
-torch = "1.12.1"       # OR "1.12.1+cpu"
+torch = "1.11.0"       # OR "1.12.1+cpu"
 # torchvision = "0.13.1" # OR "0.13.1+cpu"
-torchaudio = "0.12.1"
+torchaudio = "0.11.0"
 speechbrain = ">=0.5.13"
 confluent-kafka = "^1.9.2"
+SpeechRecognition = "3.9.0"
+openai-whisper = {url = "https://github.com/openai/whisper/archive/refs/tags/v20230117.tar.gz"}
 
 [tool.poetry.group.dev.dependencies]
 testcontainers = "^3.7.1"

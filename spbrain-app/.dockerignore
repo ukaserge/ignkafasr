@@ -1,5 +1,9 @@
+.cache
+.idea
+.git
+.DS_Store
 tmp
 tests
-dist
+.dist
 __pycache__
 .venv

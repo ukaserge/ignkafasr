@@ -9,7 +9,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.toml README.md ./
 
 RUN python -m venv .venv
-RUN .venv/bin/python3.9 -m pip install torch==1.12.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
+RUN .venv/bin/python3.9 -m pip install torch==1.11.0+cpu torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cpu
 
 COPY spbrain ./spbrain
 RUN poetry build
@@ -21,6 +21,7 @@ WORKDIR /app
 COPY --from=builder /app/.venv ./.venv
 COPY --from=builder /app/dist ./dist
 
+RUN apt update && apt install ffmpeg -y
 RUN .venv/bin/python3.9 -m pip install dist/*.whl
 
 CMD ["/app/.venv/bin/python3.9", "-m", "spbrain.core"]

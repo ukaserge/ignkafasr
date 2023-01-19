@@ -1,338 +1,276 @@
 #!/usr/bin/env python3
-
-print("import start")
-
+import asyncio
+import io
 import logging
+import os
+import sys
+import tempfile
+import uuid
+from itertools import product
+from tempfile import NamedTemporaryFile
+from typing import Optional, Tuple, List, Any
 from uuid import UUID
 
+import speech_recognition as sr
 import torch
-
-from pyignite.aio_cache import AioCache
-from pyignite.cursors import AioScanCursor
-from pyignite.datatypes import ExpiryPolicy
-from pyignite.datatypes.prop_codes import PROP_NAME, PROP_EXPIRY_POLICY
-from datetime import timedelta
-
-from speechbrain.pretrained import SpeakerRecognition, SepformerSeparation, VAD
-from pyignite import AioClient
 import torchaudio
-import uuid
-import os
-import asyncio
-from confluent_kafka\
+import whisper
+from confluent_kafka \
     import Message, Consumer as KafkaConsumer, Producer as KafkaProducer, OFFSET_BEGINNING
-from itertools import product
-import sys
-from typing import Callable, Awaitable, Optional, Dict, Tuple, List, Coroutine, Any
+from pyignite import AioClient
+from pyignite.aio_cache import AioCache
 from speechbrain.dataio.dataio import read_audio
+from speechbrain.pretrained import SpeakerRecognition, VAD
 from torch import Tensor
-
-print("import ok!!")
-
-logger: Any 
-
-def blob_to_waveform_and_sample_rate(
-        blob: bytes
-) -> object:
-    foo = open("foo.wav", mode="wb")
-    foo.write(blob)
-    foo.close()
-
-    # noinspection PyUnresolvedReferences
-    cand_waveform, cand_sample_rate = torchaudio.load("foo.wav")
-
-    return cand_waveform, cand_sample_rate
+from whisper import Whisper
 
 
-def run_vad(vad_model: VAD, filepath: str):
-    # 1- Let's compute frame-level posteriors first
-    audio_file = filepath
-    prob_chunks = vad_model.get_speech_prob_file(
-        audio_file,
-        small_chunk_size=1,
-        large_chunk_size=60
-    )
+class IgniteRepository:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.ignite_client = AioClient()
 
-    # 2- Let's apply a threshold on top of the posteriors
-    prob_th = vad_model.apply_threshold(
-        prob_chunks,
-        # activation_th=0.8,
-        # deactivation_th=0.4
-        # activation_th=0.7,
-        # deactivation_th=0.4
-    ).float()
+    async def get(self, cache_name: str, key: Any):
+        async with self.ignite_client.connect(self.host, self.port):
+            cache: AioCache = await self.ignite_client.get_cache(cache_name)
+            return await cache.get(key)
 
-    # 3- Let's now derive the candidate speech segments
-    boundaries = vad_model.get_boundaries(prob_th)
-
-    # 5- Merge segments that are too close
-    boundaries = vad_model.merge_close_segments(boundaries, close_th=0.3)
-
-    # 6- Remove segments that are too short
-    boundaries = vad_model.remove_short_segments(boundaries, len_th=0.2)
-
-    # 7- Double-check speech segments (optional).
-    boundaries = vad_model.double_check_speech_segments(boundaries, audio_file, speech_th=0.25)
-
-    return boundaries
-
-
-def file_to_vad_segments(
-        vad_model: VAD,
-        file: str
-) -> List[Tensor]:
-    # seg = VAD.get_segments(boundaries=run_vad(file), audio_file=file)
-    seg = vad_model.get_speech_segments(file, small_chunk_size=2, large_chunk_size=60)
-    logger.info(seg)
-
-    ret = []
-    # seg = seg.squeeze().squeeze().squeeze()
-
-    if len(seg) == 0:
-        return []
-    seg = seg.flatten()
-    for s, e in seg.reshape((len(seg)//2, 2)):
-        ret.append(read_audio({
-            "file": file,
-            "start": int(s.item() * 16000.0),
-            "stop": int(e.item() * 16000.0)
-        }))
-        # print_waveform(ret[-1])
-    logger.info(ret)
-    return ret
-
-
-def wf_to_vad_segments(
-        vad_model: VAD,
-        wf: Tensor
-) -> List[Tensor]:
-    # noinspection PyUnresolvedReferences
-    torchaudio.save("foo.wav", wf.unsqueeze(0), 16000)
-    return file_to_vad_segments(vad_model, "foo.wav")
-
-
-# fd if voice active
-def verify(
-        signal1: Tensor,
-        signal2: Tensor,
-        model: SpeakerRecognition,
-        enh_model: SepformerSeparation,
-        vad_model: VAD
-) -> Tuple[Tensor, Tensor]:
-    assert model is not None
-    assert enh_model is not None
-    assert vad_model is not None
-
-    seg1: List[Tensor] = wf_to_vad_segments(vad_model, signal1.squeeze())
-    seg2: List[Tensor] = wf_to_vad_segments(vad_model, signal2.squeeze())
-
-    if len(seg1) == 0 and len(seg2) == 0:
-        logger.info("signal1,2 voice not detected")
-        return torch.tensor([[-1.0]]), torch.tensor([[False]])
-    elif len(seg1) == 0:
-        logger.info("signal1 voice not detected")
-        return torch.tensor([[-1.0]]), torch.tensor([[False]])
-    elif len(seg2) == 0:
-        logger.info("signal2 voice not detected")
-        return torch.tensor([[-1.0]]), torch.tensor([[False]])
-
-    ret: Tuple[Tensor, Tensor] = (torch.tensor([[-1.0]]), torch.tensor([[False]]))
-    for s1, s2 in product(seg1, seg2):
-        score, prediction = model.verify_batch(s1.squeeze(), s2.squeeze())
-        logger.info((score, prediction))
-        if score > ret[0]:
-            ret = (score, prediction)
-
-    return ret
-
-
-def consume_and_infer(
-        model: SpeakerRecognition,
-        cache: AioCache,
-        auth_cache: AioCache,
-        uuid_to_label_cache: AioCache,
-        enh_model: SepformerSeparation,
-        vad_model: VAD
-) -> Callable[[KafkaConsumer, KafkaProducer], Coroutine[Any, Any, None]]:
-    async def auth_users_key_list():
+    async def scan_keys(self, cache_name: str):
         keys = []
-        logger.info("scan start")
-
-        cursor: AioScanCursor
-        async with auth_cache.scan() as cursor:
-            async for k, _ in cursor:
-                logger.info('scanning')
-                keys.append(k)
-
+        async with self.ignite_client.connect(self.host, self.port):
+            cache: AioCache = await self.ignite_client.get_cache(cache_name)
+            async with cache.scan() as cursor:
+                async for k, _ in cursor:
+                    keys.append(k)
         return keys
 
-    async def loop_consume_and_infer(
-        consumer: KafkaConsumer,
-        producer: KafkaProducer
-    ) -> None:
-        consume_keys: Dict[UUID, bool] = dict()
 
+class SpeechService:
+    def __init__(self, sv_model: SpeakerRecognition, vad_model: VAD, asr_model: Whisper, logger: logging.Logger):
+        self.sv_model = sv_model
+        self.vad_model = vad_model
+        self.asr_model = asr_model
+        self.logger = logger
+
+    async def verify_file(self, filename1, filename2):
+        seg1 = self.file_to_vad_segments(filename1)
+        seg2 = self.file_to_vad_segments(filename2)
+
+        if len(seg1) == 0 or len(seg2) == 0:
+            self.log("voice not detected:\n{0}\n{1}".format(str(seg1), str(seg2)))
+            return torch.tensor([[-1.0]]), torch.tensor([[False]])
+
+        ret: Tuple[Tensor, Tensor] = (torch.tensor([[-1.0]]), torch.tensor([[False]]))
+        for s1, s2 in product(seg1, seg2):
+            score, prediction = self.sv_model.verify_batch(s1.squeeze(), s2.squeeze())
+            self.log((score, prediction))
+            if score > ret[0]:
+                ret = (score, prediction)
+        return ret
+
+
+    async def transcribe(self, filename=None, waveform: Optional[Tensor] = None):
+        if waveform is not None and filename is not None:
+            raise RuntimeError("transcribe_file invalid usage..")
+        elif waveform is not None:
+            self.log(waveform.shape)
+            filename = "foo.wav"
+            torchaudio.save(filepath=filename, src=waveform, sample_rate=16000, encoding="PCM_S")
+            self.log(waveform.shape)
+
+        self.log("save as " + filename)
+        recorder = sr.Recognizer()
+        recorder.energy_threshold = 1000
+        recorder.dynamic_energy_threshold = False
+
+        source = sr.AudioFile(filename)
+        with source:
+            recorder.adjust_for_ambient_noise(source)
+        self.log("adjust ok")
+
+        enhanced_audio_filename = NamedTemporaryFile().name
+        with source:
+            self.log("record start")
+            audio1 = recorder.record(source=source, duration=source.DURATION)
+            self.log("record ok")
+            with open(enhanced_audio_filename, "w+b") as f:
+                f.write(io.BytesIO(audio1.get_wav_data()).read())
+            self.log("start self.asr_model.transcribe")
+            result = self.asr_model.transcribe(enhanced_audio_filename, fp16=False)
+            self.log(result)
+
+        return result
+
+    def file_to_vad_segments(self, file: str) -> List[Tensor]:
+        seg = self.vad_model.get_speech_segments(file, small_chunk_size=2, large_chunk_size=60)
+        self.log(seg)
+
+        if len(seg) == 0:
+            return []
+
+        ret = []
+        seg = seg.flatten()
+        for s, e in seg.reshape((len(seg) // 2, 2)):
+            ret.append(read_audio({
+                "file": file,
+                "start": int(s.item() * 16000.0),
+                "stop": int(e.item() * 16000.0)
+            }))
+            # print_waveform(ret[-1])
+        self.log(ret)
+        return ret
+
+    def log(self, msg):
+        self.logger.info(msg)
+
+
+class MainService:
+    consumer: KafkaConsumer
+    producer: KafkaProducer
+    logger: logging.Logger
+    speech_service: SpeechService
+
+    def __init__(
+            self,
+            consumer: KafkaConsumer,
+            producer: KafkaProducer,
+            ignite_repository: IgniteRepository,
+            speech_service: SpeechService,
+            logger: logging.Logger
+    ):
+        self.consumer = consumer
+        self.producer = producer
+        self.ignite_repository = ignite_repository
+        self.speech_service = speech_service
+        self.logger = logger
+
+    def log(self, msg):
+        self.logger.info(msg)
+
+    def produce(self, topic, msg):
+        self.producer.produce(topic='infer', value=msg)
+        self.producer.poll(0)
+        self.consumer.commit()
+        pass
+
+    async def on_next_user_pending(self, msg: Message) -> Optional[str]:
+        # noinspection PyArgumentList
+        try:
+            cache_key: UUID = uuid.UUID(msg.value().decode('utf-8'))
+        except Exception as e:
+            self.log('user-pending invalid uuid value')
+            self.log(msg.value())
+            self.log(e)
+            return None
+
+        self.log('consume')
+        self.log(cache_key)
+
+        cand_blob = await self.ignite_repository.get('uploadCache', cache_key)
+
+        if cand_blob is None:
+            message = str(cache_key) + ",FAIL; cand ignite uploadCache get fail....."
+            return message
+
+        # audio_filename = NamedTemporaryFile(suffix=".wav").name
+        cand_audio_filename = "cand.wav"
+        audio_file = open(cand_audio_filename, mode="w+b")
+        audio_file.write(cand_blob)
+        audio_file.close()
+
+        self.log("transcribe start1")
+        transcribed = await self.speech_service.transcribe(filename=cand_audio_filename)
+        self.log(transcribed)
+
+        keys = await self.ignite_repository.scan_keys('authCache')
+        if len(keys) == 0:
+            message = str(cache_key) + ",FAIL; registered user group is empty."
+            return message
+
+        flag = False
+        auth_uuid = None
+        match_score = torch.tensor([-1.0])
+        for key in keys:
+            if key == '' or key == b'' or key is None:
+                continue
+            auth_blob = await self.ignite_repository.get('uploadCache', key)
+            if auth_blob is None:
+                continue
+
+            auth_audio_filename = "auth.wav"
+            audio_file = open(auth_audio_filename, mode="w+b")
+            audio_file.write(auth_blob)
+            audio_file.close()
+
+            try:
+                score, prediction = await self.speech_service.verify_file(cand_audio_filename, auth_audio_filename)
+            except RuntimeError as e:
+                self.log("verify fail; ")
+                self.log(e)
+                continue
+
+            self.log(score)
+            self.log(prediction)
+            match_score = max(score, match_score)
+
+            if prediction[0]:
+                self.log("GOOD")
+                flag = True
+                auth_uuid = key
+                match_score = score
+                break
+
+        if flag:
+            label = await self.ignite_repository.get('uuid2label', auth_uuid)
+            label = "unknown" if label is None else label
+            message = str(cache_key) + ",OK " + label + "; score=" + str(match_score)
+            message += "; " + transcribed
+            # example:
+            # b9ae83f2-f0a7-408c-b002-b9d2ba546a22,OK dongjin21; score=tensor([[0.3660]])
+        else:
+            message = str(cache_key) + ",FAIL; "
+            if match_score == torch.tensor([-1.0]):
+                message += "voice is not detected; " + transcribed
+            # example:
+            # b9ae83f2-f0a7-408c-b002-b9d2ba546a21,FAIL;
+        return message
+
+    async def on_next_register_pending(self, msg: Message):
+        pass
+
+    async def start_async(
+            self,
+            sleep=0
+    ):
+        self.consumer.subscribe(['user-pending'], on_assign=reset_offset_beginning)
         while True:
-            msg: Optional[Message] = consumer.poll(1.0)
+            msg: Optional[Message] = self.consumer.poll(1.0)
+
             if msg is None:
                 continue
             elif msg.error():
-                logger.info(msg.error())
+                self.log(msg.error())
                 continue
-
-            # noinspection PyArgumentList
             try:
-                cache_key: UUID = uuid.UUID(msg.value().decode('utf-8'))
-            except Exception as e:
-                logger.info('user-pending invalid uuid value')
-                logger.info(msg.value())
-                logger.info(e)
-                continue
-
-            logger.info('consume')
-            logger.info(cache_key)
-
-            if cache_key in consume_keys:
-                logger.info("already processed")
-                continue
-
-            cand = await cache.get(cache_key)
-
-            if cand is None:
-                logger.info("not exists key")
-                continue
-
-            consume_keys[cache_key] = True
-
-            loop = asyncio.get_running_loop()
-            try:
-                cand_waveform, cand_sample_rate = await loop.run_in_executor(
-                    None,
-                    lambda: blob_to_waveform_and_sample_rate(cand)
-                )
-
-                logger.info(cand_waveform.shape)
+                result = await self.on_next_user_pending(msg)
             except RuntimeError as e:
-                logger.info(e)
-                logger.info("BAD")
+                self.log(e)
 
-                # noinspection PyArgumentList
-                producer.produce(topic='infer', value=msg.value())
-                producer.poll(0)
-
-                # producer.flush()
-                consumer.commit()
+            if result is None:
+                self.log(("invalid payload", msg))
                 continue
+            self.produce(topic='infer', msg=result)
+            self.log("SEND OK")
 
-            keys = await auth_users_key_list()
-
-            flag = False
-            auth_uuid = None
-            match_score = torch.tensor([-1.0])
-            for key in keys:
-                if key == '' or key == b'' or key is None:
-                    continue
-
-                auth_data = await cache.get(key)
-                if auth_data is None:
-                    continue
-
-                try:
-                    auth_waveform, auth_sample_rate = await loop.run_in_executor(
-                        None,
-                        lambda: blob_to_waveform_and_sample_rate(auth_data)
-                    )
-
-                    logger.info(auth_waveform.shape)
-
-                    score, prediction = await loop.run_in_executor(
-                        None,
-                        lambda: verify(cand_waveform, auth_waveform, model, enh_model, vad_model)
-                    )
-                except RuntimeError as e:
-                    import traceback
-                    logger.info(e)
-                    traceback.print_stack()
-                    continue
-
-                logger.info(score)
-                logger.info(prediction)
-                match_score = max(score, match_score)
-
-                if prediction[0]:
-                    logger.info("GOOD")
-                    flag = True
-                    auth_uuid = key
-                    match_score = score
-                    break
-
-            logger.info("SEND_AND_WAIT")
-
-            destination_topic = 'infer'
-            if flag:
-                label = await uuid_to_label_cache.get(auth_uuid)
-                if label is None:
-                    label = "unknown"
-                message = str(cache_key) + ",OK " + label + "; score=" + str(match_score)
-                producer.produce(topic=destination_topic, value=message)
-                # example:
-                # b9ae83f2-f0a7-408c-b002-b9d2ba546a22,OK dongjin21; score=tensor([[0.3660]])
-            else:
-                message = str(cache_key) + ",FAIL; "
-                if match_score == torch.tensor([-1.0]):
-                    message += "voice is not detected"
-                producer.produce(topic=destination_topic, value=message)
-                # example:
-                # b9ae83f2-f0a7-408c-b002-b9d2ba546a21,FAIL;
-
-            producer.poll(0)
-            consumer.commit()
-
-            logger.info("SEND OK")
-
-    async def f(consumer: KafkaConsumer, producer: KafkaProducer) -> None:
-        logger.info('OK : Ready to consume')
-
-        try:
-            await loop_consume_and_infer(consumer, producer)
-        finally:
-            consumer.close()
-            producer.flush()
-
-    return f
+        self.log("Consumer closing..")
+        self.consumer.close()
+        self.producer.flush()
 
 
-async def connect_ignite(
-        ignite_host: str,
-        ignite_port: int,
-        do_something: Callable[[AioCache, AioCache, AioCache], Awaitable]
-) -> None:
-    ignite_cfg = lambda name: {
-        PROP_NAME: name,
-        PROP_EXPIRY_POLICY: ExpiryPolicy(create=timedelta(seconds=300))
-    }
-
-    ignite_client = AioClient()
-    async with ignite_client.connect(ignite_host, ignite_port):
-        logger.info("OK : connection for ignite")
-        cache = await ignite_client.get_or_create_cache(ignite_cfg('uploadCache'))
-        auth_cache = await ignite_client.get_or_create_cache(ignite_cfg('authCache'))
-        uuid_to_label_cache = await ignite_client.get_or_create_cache(ignite_cfg('uuid2label'))
-
-        await do_something(cache, auth_cache, uuid_to_label_cache)
-
-
-async def connect_kafka(
-        bootstrap_servers: str,
-        kafka_user_name: Optional[str],
-        kafka_user_password: Optional[str],
-        do_something: Callable[[KafkaConsumer, KafkaProducer], Awaitable]
-) -> None:
-    def reset_offset(topic_consumer, partitions):
-        for p in partitions:
-            p.offset = OFFSET_BEGINNING
-        topic_consumer.assign(partitions)
-
+async def load_kafka_pubsub(bootstrap_servers: Optional[str] = None,
+                            kafka_user_name: Optional[str] = None,
+                            kafka_user_password: Optional[str] = None) -> Tuple[KafkaProducer, KafkaConsumer]:
     kafka_producer_config = {
         'bootstrap.servers': bootstrap_servers,
         'queue.buffering.max.ms': 500,
@@ -359,74 +297,83 @@ async def connect_kafka(
     producer = KafkaProducer(kafka_producer_config)
     consumer = KafkaConsumer(kafka_consumer_config)
 
-    logger.info("OK : connection for kafka")
-
-    consumer.subscribe(['user-pending'], on_assign=reset_offset)
-
-    logger.info("START : consumer.start()")
-    logger.info("DO : do_something(consumer, producer)")
-
-    while True:
-        # time.sleep(0.1)
-        await do_something(consumer, producer)
+    return producer, consumer
 
 
-async def main():
+def reset_offset_beginning(topic_consumer, partitions):
+    for p in partitions:
+        p.offset = OFFSET_BEGINNING
+    topic_consumer.assign(partitions)
+
+
+async def load_speech_models() -> dict[str, Any]:
+    models: dict[str, Any] = {
+        'sv_model': SpeakerRecognition.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb",
+                                                    savedir='pretrained_models/spkrec-ecpa-voxceleb'),
+        'vad_model': VAD.from_hparams(source="speechbrain/vad-crdnn-libriparty",
+                                      savedir="pretrained_models/vad-crdnn-libriparty"),
+        'asr_model': whisper.load_model("tiny.en", in_memory=True)
+    }
+
+    # https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb
+    models['sv_model'].eval()
+    models['vad_model'].eval()
+    models['asr_model'].eval()
+
+    return models
+
+
+async def main(logger):
     logger.info("main")
-    bootstrap_servers = os.environ['BOOTSTRAPSERVERS']
+
+    # Load Environment Variables
+    try:
+        bootstrap_servers = os.environ['BOOTSTRAPSERVERS']
+        ignite_host = os.environ['IGNITE_SERVICE_NAME']
+        ignite_port = int(os.environ['IGNITE_PORT'])
+    except KeyError as e:
+        logger.info("Fail to load environment variables")
+        logger.info(e)
+        return
+
     try:
         kafka_user_name = os.environ['KAFKA_USER_NAME']
         kafka_user_password = os.environ['KAFKA_USER_PASSWORD']
-    except Exception as e:
-        logger.info(e)
+    except KeyError as e:
+        logger.info("WARN: no security mode for local environment")
         kafka_user_name = None
         kafka_user_password = None
 
-    ignite_host = os.environ['IGNITE_SERVICE_NAME']
-    ignite_port = int(os.environ['IGNITE_PORT'])
+    producer, consumer = await load_kafka_pubsub(bootstrap_servers=bootstrap_servers,
+                                                 kafka_user_name=kafka_user_name,
+                                                 kafka_user_password=kafka_user_password)
+    models = await load_speech_models()
+    speech_service = SpeechService(sv_model=models['sv_model'],
+                                   vad_model=models['vad_model'],
+                                   asr_model=models['asr_model'],
+                                   logger=logger)
 
-    enh_model: SepformerSeparation = SepformerSeparation.from_hparams(source="speechbrain/sepformer-wham16k-enhancement", savedir='pretrained_models/sepformer-wham16k-enhancement')
-    enh_model.eval()
-
-    # https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb
-    model: SpeakerRecognition = SpeakerRecognition.from_hparams(source="speechbrain/spkrec-ecapa-voxceleb")
-    model.eval()
-
-    vad_model: VAD = VAD.from_hparams(
-        source="speechbrain/vad-crdnn-libriparty",
-        savedir="pretrained_models/vad-crdnn-libriparty"
-    )
-    vad_model.eval()
-
-    async def f(cache, auth_cache, uuid_to_label_cache):
-        await connect_kafka(
-            bootstrap_servers,
-            kafka_user_name,
-            kafka_user_password,
-            consume_and_infer(model, cache, auth_cache, uuid_to_label_cache, enh_model, vad_model)
-        )
-
-    await connect_ignite(
-        ignite_host,
-        ignite_port,
-        f
+    verify_service = MainService(
+        producer=producer,
+        consumer=consumer,
+        ignite_repository=IgniteRepository(host=ignite_host, port=ignite_port),
+        speech_service=speech_service,
+        logger=logger
     )
 
+    await verify_service.start_async()
 
-def async_main():
-    asyncio.run(main())
 
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s %(levelname)s:%(name)s: %(message)s",
         level=logging.DEBUG,
         datefmt="%H:%M:%S",
-        stream=sys.stderr,
+        stream=sys.stdout,
     )
-    logger = logging.getLogger("areq")
+    main_logger = logging.getLogger("main")
     logging.getLogger("chardet.charsetprober").disabled = True
 
-    logger.info("logger start")
+    main_logger.info("logger start")
 
-    async_main()
-
+    asyncio.run(main(main_logger))
