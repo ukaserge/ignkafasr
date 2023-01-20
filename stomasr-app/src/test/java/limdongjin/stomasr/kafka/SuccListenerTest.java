@@ -1,5 +1,7 @@
 package limdongjin.stomasr.kafka;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import limdongjin.stomasr.protos.InferProto;
 import limdongjin.stomasr.service.SuccService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,16 +34,13 @@ class SuccListenerTest {
     }
 
     @Test
-    void whenListenThenInvokeSuccService() {
+    void whenListenThenInvokeSuccService() throws InvalidProtocolBufferException {
         final String OK_MSG = "OK; ";
         final String FAIL_MSG = "FAIL; ";
 
         // Given
-        final String reqId = UUID.randomUUID().toString();
-        final String payload1 = String.join(",",reqId, OK_MSG);
-
-        final String reqId2 = UUID.randomUUID().toString();
-        final String payload2 = String.join(",", reqId2, FAIL_MSG);
+        final byte[] payload1 = InferProto.Infer.newBuilder().setReqId(UUID.randomUUID().toString()).setInferResult(OK_MSG).build().toByteArray();
+        final byte[] payload2 = InferProto.Infer.newBuilder().setReqId(UUID.randomUUID().toString()).setInferResult(FAIL_MSG).build().toByteArray();
 
         // When
         listener.onInfer(0L, payload1);

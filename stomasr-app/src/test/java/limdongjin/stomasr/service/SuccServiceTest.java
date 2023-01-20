@@ -1,5 +1,7 @@
 package limdongjin.stomasr.service;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+import limdongjin.stomasr.protos.InferProto;
 import limdongjin.stomasr.repository.AuthRepository;
 import limdongjin.stomasr.stomp.MessageDestinationPrefixConstants;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,39 +34,33 @@ class SuccServiceTest {
 
     @Test
     void throwIfReceivedInvalidPayload() {
-        String payload1 = "";
-        String payload2 = "12345";
-        String payload3 = UUID.randomUUID().toString();
-        String payload4 = String.join(",", "12345-12345-3432-222", OK_MSG); // invalid uuid format
-        String payload5 = String.join(",", UUID.randomUUID().toString(), " "); // invalid message format
+        byte[] payload2 = "12345".getBytes();
+        byte[] payload3 = InferProto.Infer.newBuilder().setReqId(UUID.randomUUID().toString()).setInferResult("").build().toByteArray();
+        byte[] payload4 = InferProto.Infer.newBuilder().setReqId("12345-12345-3432-222").setInferResult(OK_MSG).build().toByteArray();
 
-        assertThrows(IllegalArgumentException.class, () -> succService.onInfer(payload1));
-        assertThrows(IllegalArgumentException.class, () -> succService.onInfer(payload2));
+        assertThrows(InvalidProtocolBufferException.class, () -> succService.onInfer(payload2));
         assertThrows(IllegalArgumentException.class, () -> succService.onInfer(payload3));
         assertThrows(IllegalArgumentException.class, () -> succService.onInfer(payload4));
-        assertThrows(IllegalArgumentException.class, () -> succService.onInfer(payload5));
 
         assertEquals(0, authRepository.size());
     }
 
     @Test
-    void whenOnInferThenWillSendMessageAndSaveReqId() {
+    void whenOnInferThenWillSendMessageAndSaveReqId() throws InvalidProtocolBufferException {
         String reqId = UUID.randomUUID().toString();
-        String msg = OK_MSG;
-        String payload = String.join(",", reqId, msg);
+        byte[] payload = InferProto.Infer.newBuilder().setReqId(reqId).setInferResult(OK_MSG).build().toByteArray();
         // eg, "471ac3dc-99d6-4b02-930e-3cf4ef24c0cf,OK;"
 
         succService.onInfer(payload);
 
-        Mockito.verify(messageSendingOperations, Mockito.times(1)).convertAndSend(MessageDestinationPrefixConstants.SUCC + reqId, msg);
-        Mockito.verify(authRepository, Mockito.times(1)).putIfAbsent(reqId, msg);
+        Mockito.verify(messageSendingOperations, Mockito.times(1)).convertAndSend(Mockito.eq( MessageDestinationPrefixConstants.SUCC + reqId), Mockito.anyString());
+        Mockito.verify(authRepository, Mockito.times(1)).putIfAbsent(Mockito.eq(reqId), Mockito.anyString());
     }
 
     @Test
-    void whenOnInferThenInsertReqIdIntoAuthRepository() {
+    void whenOnInferThenInsertReqIdIntoAuthRepository() throws InvalidProtocolBufferException {
         String reqId = UUID.randomUUID().toString();
-        String msg = OK_MSG;
-        String payload = String.join(",", reqId, msg);
+        byte[] payload = InferProto.Infer.newBuilder().setReqId(reqId).setInferResult(OK_MSG).build().toByteArray();
 
         assertFalse(authRepository.containsKey(reqId));
 

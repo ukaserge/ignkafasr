@@ -1,5 +1,6 @@
 package limdongjin.stomasr.kafka;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import limdongjin.stomasr.service.SuccService;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -10,6 +11,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import limdongjin.stomasr.kafka.KafkaConstants;
 import java.util.logging.Logger;
+import limdongjin.stomasr.protos.InferProto;
 
 @Component
 @KafkaListener(
@@ -29,67 +31,20 @@ public class SuccListener {
     @KafkaHandler
     public void onInfer(
         @Header(KafkaHeaders.OFFSET) Long offset,
-        @Payload String payload
-    ) throws IllegalArgumentException
-    {
+        @Payload byte[] payload
+    ) throws IllegalArgumentException, InvalidProtocolBufferException {
         if(payload == null){
             throw new IllegalArgumentException("receive null payload");
         }
         if(offset == null){
             throw new AssertionError("offset can not be null");
         }
-        logger.info(String.format("onInfer %s && offset is %d", payload, offset));
-
+        logger.info(String.format("onInfer %s && offset is %d", new String(payload), offset));
         try {
             succService.onInfer(payload);
         }catch (Exception e){
             e.printStackTrace();
             throw e;
         }
-    }
-
-    @KafkaHandler(isDefault = true)
-    public void onInfer(@Payload Object payload) {
-        if(payload == null){
-            throw new IllegalArgumentException("receive null payload");
-        }
-        logger.info("(default) receive payload: ");
-        logger.info(payload.toString());
-
-        try {
-            if(Class.forName(String.class.getName()).isInstance(payload)){
-                succService.onInfer((String) payload);
-            }
-        } catch (ClassNotFoundException exception){
-            throw new AssertionError("false");
-        }
-    }
-//    @KafkaListener(topics = KafkaTopicConstants.INFER_POSITIVE, concurrency = "3", groupId = CONSUMER_GROUP_ID)
-//    public void onInferPositive(@NonNull @Payload String reqId) throws IllegalArgumentException {
-//        logger.info("INFER POSITIVE ");
-//        logger.info(reqId);
-//
-//        succService.onInferPositive(reqId);
-//    }
-//
-//    @KafkaListener(topics = KafkaTopicConstants.INFER_POSITIVE, concurrency = "3", groupId = CONSUMER_GROUP_ID)
-//    public void onInferPositive(@Nullable @Payload Object reqId) {
-//        logger.info("doNothing");
-//    }
-//
-//    @KafkaListener(topics = KafkaTopicConstants.INFER_NEGATIVE, concurrency = "3", groupId = CONSUMER_GROUP_ID)
-//    public void onInferNegative(@Payload String reqId) throws IllegalArgumentException {
-//        logger.info("INFER NEGATIVE ");
-//        logger.info(reqId);
-//
-//        succService.onInferNegative(reqId);
-//    }
-
-    public SuccService getSuccService() {
-        return succService;
-    }
-
-    public void setSuccService(SuccService succService) {
-        this.succService = succService;
     }
 }

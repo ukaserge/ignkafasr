@@ -32,11 +32,20 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry
+        if(allowedOrigin != null && !allowedOrigin.equals("*")){
+            registry
                 .addHandler(signalHandler, "/signal")
                 .setAllowedOrigins(allowedOrigin)
                 .withSockJS()
-        ;
+            ;
+        }else {
+           registry
+                .addHandler(signalHandler, "/signal")
+                .setAllowedOriginPatterns("http://localhost:3000")
+                .withSockJS()
+            ;
+
+        }
     }
 
     @Bean

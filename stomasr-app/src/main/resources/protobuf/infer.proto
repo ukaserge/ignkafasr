@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package limdongjin.stomasr.protos;
+option java_outer_classname = "InferProto";
+option java_package = "limdongjin.stomasr.protos";
+
+message Infer {
+  string reqId = 1;
+  string inferResult = 2;
+  optional string label = 3;
+  optional string score = 4;
+  optional string info = 5;
+  optional string transcription = 6;
+}
