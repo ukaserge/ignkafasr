@@ -1,6 +1,7 @@
 package limdongjin.ignasr.handler;
 
 import limdongjin.ignasr.dto.SpeechUploadResponseDto;
+import limdongjin.ignasr.protos.UserPendingProto;
 import limdongjin.ignasr.repository.IgniteRepository;
 import limdongjin.ignasr.util.MultiPartUtil;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,11 +21,21 @@ import static org.springframework.web.reactive.function.server.ServerResponse.ok
 @Component
 public class SpeechUploadHandler {
     @Value("${limdongjin.ignasr.cors.origin}")
-    public static String allowedOrigin;
-    private final ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate;
+    public String allowedOrigin;
+
+    public String getAllowedOrigin() {
+        return allowedOrigin;
+    }
+
+    public void setAllowedOrigin(String allowedOrigin) {
+        this.allowedOrigin = allowedOrigin;
+    }
+
+
+    private final ReactiveKafkaProducerTemplate<String, byte[]> reactiveKafkaProducerTemplate;
     private final IgniteRepository igniteRepository;
 
-    public SpeechUploadHandler(IgniteRepository igniteRepository, ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate){
+    public SpeechUploadHandler(IgniteRepository igniteRepository, ReactiveKafkaProducerTemplate<String, byte[]> reactiveKafkaProducerTemplate){
         this.igniteRepository = igniteRepository;
         this.reactiveKafkaProducerTemplate = reactiveKafkaProducerTemplate;
     }
@@ -45,18 +56,28 @@ public class SpeechUploadHandler {
         Mono<Mono<UUID>> labelUploadMonoMono = Mono.zip(labelMono, uuidMono)
                 .flatMap(label2uuid -> igniteRepository.putAsync("uuid2label", label2uuid.getT2(), label2uuid.getT1()))
         ;
-
+        
+        // TODO refactoring
         return Mono.zip(fileUploadMonoMono, labelUploadMonoMono, Mono.just(labelMono))
                 .flatMap(uuid2label -> {
-                    Mono<UUID> authUploadMono = uuid2label.getT1();
+                    Mono<UUID> fileUploadMono = uuid2label.getT1();
                     Mono<UUID> labelUploadMono = uuid2label.getT2();
                     Mono<String> labelMonoo = uuid2label.getT3();
 
-                    return Mono.zip(authUploadMono, labelUploadMono, labelMonoo)
-                            .flatMap(tuple2 -> reactiveKafkaProducerTemplate.send("user-pending", tuple2.getT1().toString()).thenReturn(tuple2))
+                    return Mono.zip(fileUploadMono, labelUploadMono, labelMonoo)
+                            .flatMap(tuple2 -> {
+                                var reqId = tuple2.getT1().toString();
+                                byte[] userPendingBytes = UserPendingProto.UserPending
+                                        .newBuilder()
+                                        .setReqId(reqId)
+                                        .build()
+                                        .toByteArray();
+
+                                return reactiveKafkaProducerTemplate.send("user-pending", userPendingBytes).thenReturn(tuple2);
+                            })
                             .flatMap(tuple2 -> toSuccessResponseDtoMono(tuple2.getT1(), "success upload; ", tuple2.getT3()));
                 })
-                .flatMap(responseDto -> ok().headers(SpeechUploadHandler::addCorsHeaders).body(Mono.just(responseDto), SpeechUploadResponseDto.class))
+                .flatMap(responseDto -> ok().headers(this::addCorsHeaders).body(Mono.just(responseDto), SpeechUploadResponseDto.class))
         ;
 
     }
@@ -90,14 +111,20 @@ public class SpeechUploadHandler {
                     return Mono.zip(authUploadMono, fileUploadMono, labelUploadMono, labelMonoo)
                             .flatMap(tuple3 -> toSuccessResponseDtoMono(tuple3.getT1(), "success register; ", tuple3.getT4()));
                 })
-                .flatMap(responseDto -> ok().headers(SpeechUploadHandler::addCorsHeaders).body(Mono.just(responseDto), SpeechUploadResponseDto.class))
+                .flatMap(responseDto -> ok().headers(this::addCorsHeaders).body(Mono.just(responseDto), SpeechUploadResponseDto.class))
         ;
 
     }
-    private static void addCorsHeaders(HttpHeaders httpHeaders) {
-        httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
+    
+    private void addCorsHeaders(HttpHeaders httpHeaders) {
+        if(allowedOrigin == null || allowedOrigin.equals("*")){
+            httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:3000");
+        }else{
+            httpHeaders.add(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowedOrigin);
+        }
         httpHeaders.addAll(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, Arrays.asList("POST", "PUT", "OPTIONS", "GET", "HEAD"));
     }
+
     public static Mono<SpeechUploadResponseDto> toSuccessResponseDtoMono(UUID reqId, String msg, String label) {
         return Mono.just(new SpeechUploadResponseDto(reqId.toString(), String.format("%s; %s; %s", msg, reqId.toString(), label), label)) ;
     }

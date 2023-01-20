@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package limdongjin.ignasr.protos;
+
+option java_outer_classname = "UserPendingProto";
+option java_package = "limdongjin.ignasr.protos";
+
+message UserPending {
+  string reqId = 1;
+}

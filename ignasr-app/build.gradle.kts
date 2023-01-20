@@ -25,6 +25,7 @@ dependencies {
     api("org.apache.ignite:ignite-spring:$igniteVersion")
     api("org.apache.ignite:ignite-indexing:$igniteVersion")
     api("org.apache.ignite:ignite-kubernetes:$igniteVersion")
+    api("com.google.protobuf:protobuf-java:3.20.3")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test:$springVersion")
     testImplementation("io.projectreactor:reactor-test:3.5.1")

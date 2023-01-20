@@ -17,12 +17,17 @@ public class WebfluxConfig implements WebFluxConfigurer {
         System.out.println("CORS DEB");
         System.out.println(allowedOrigin);
 
-        registry.addMapping("/api/**")
+        if(!allowedOrigin.equals("*")){
+            registry.addMapping("/api/**")
                 .allowedOrigins(allowedOrigin)
                 .allowedMethods("PUT", "DELETE", "POST", "OPTIONS", "GET", "HEAD", "PUT")
                 .allowCredentials(true).maxAge(3600)
-        ;
-
-        // Add more mappings...
+            ;
+        }else {
+            registry.addMapping("/api/**")
+                .allowedOriginPatterns("http://*:3000", "http://localhost:*0")
+                .allowedMethods("PUT", "DELETE", "POST", "OPTIONS", "GET", "HEAD", "PUT")
+            ;
+        }
     }
 }

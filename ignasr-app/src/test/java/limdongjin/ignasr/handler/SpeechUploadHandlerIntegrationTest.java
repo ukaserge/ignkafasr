@@ -76,7 +76,7 @@ public class SpeechUploadHandlerIntegrationTest {
     private IgniteRepository igniteRepository;
 
     @Autowired
-    private ReactiveKafkaProducerTemplate<String, String> reactiveKafkaProducerTemplate;
+    private ReactiveKafkaProducerTemplate<String, byte[]> reactiveKafkaProducerTemplate;
 
     @Autowired
     private SpeechUploadHandler speechUploadHandler;
