@@ -17,6 +17,8 @@ confluent-kafka = "^1.9.2"
 SpeechRecognition = "3.9.0"
 openai-whisper = {url = "https://github.com/openai/whisper/archive/refs/tags/v20230117.tar.gz"}
 pyannote-audio = "2.1.1"
+librosa = "0.9.2"
+soundfile = ">=0.10.2"
 
 [tool.poetry.group.dev.dependencies]
 kafka-python = "2.0.1"

@@ -4,7 +4,6 @@ import io
 import logging
 import os
 import sys
-# import tempfile
 import uuid
 from tempfile import NamedTemporaryFile
 from typing import Optional, Tuple, Any
@@ -16,7 +15,6 @@ import torchaudio
 from confluent_kafka \
     import Message, Consumer as KafkaConsumer, Producer as KafkaProducer, OFFSET_BEGINNING, KafkaError, KafkaException
 from pyignite import Client
-# from pyignite.aio_cache import AioCache
 from torch import Tensor
 import whisper
 from whisper import Whisper
@@ -29,13 +27,16 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from pyannote.audio import Inference
 from .protobuf import userpending_pb2, infer_pb2
-
+import librosa
+import soundfile as sf
+from itertools import starmap
 
 class EmptyRegisterGroupException(Exception):
     def __init__(self, *args, **kwargs) -> None:
         self.reqId = kwargs['reqId']
         self.userId = kwargs['userId']
         super().__init__(*args)
+        
 
     def __str__(self) -> str:
         message = infer_pb2.Infer()
@@ -105,67 +106,49 @@ class SpeechService:
         self.asr_model = asr_model
         self.logger = logger
 
-
-    def get_embedding(self, filename):
-        self.log("get embedding")
-        with contextlib.closing(wave.open(filename, 'r')) as f:
-            frames = f.getnframes()
-            rate = f.getframerate()
-            duration = frames / float(rate)
-
-        # self.log((frames, rate, duration))
-        audio = Audio(sample_rate=16000, mono=True)
-        waveform, sample_rate = audio.crop(filename, Segment(0., duration))
-        embedding = self.embedding_model(waveform[None])
-        return embedding
-
-    def verify(self, filename1, filename2, threshold: int = 0.5) -> Tuple[Optional[Tensor], Optional[Tensor]]:
-        embedding1 = self.get_embedding(filename1)
-        embedding2 = self.get_embedding(filename2)
-        distance = cdist(embedding1, embedding2, metric='cosine')
-        score = 1 - distance
-        prediction = score >= threshold
-
-        return torch.tensor([score]), torch.tensor([prediction])
-
     def transcribe(self, filename=None, waveform: Optional[Tensor] = None):
-        if waveform is not None and filename is not None:
+        self.log("transcribe ")
+        if filename is not None:
+            assert False
+        elif waveform is not None:
+            self.log(waveform.shape)
+
+            result = self.asr_model.transcribe(waveform.squeeze(), fp16=False, verbose=True, language='en')
+        else:
             raise RuntimeError("transcribe_file invalid usage..")
 
-        self.log("transcribe " + filename)
-        result = self.asr_model.transcribe(audio = filename, language='en', verbose=True)
-        # result = "mock"
-        recorder = sr.Recognizer()
-        recorder.energy_threshold = 1000
-        recorder.dynamic_energy_threshold = False
+        self.log(result)
 
-        source = sr.AudioFile(filename)
-        with source:
-            recorder.adjust_for_ambient_noise(source)
-        self.log("adjust ok")
-
-        enhanced_audio_filename = NamedTemporaryFile().name
-        with source:
-            self.log("record start")
-            audio1 = recorder.record(source=source, duration=source.DURATION)
-            self.log("record ok")
-            with open(enhanced_audio_filename, "w+b") as f:
-                f.write(io.BytesIO(audio1.get_wav_data()).read())
-            self.log("start self.asr_model.transcribe")
-            result = self.asr_model.transcribe(enhanced_audio_filename, fp16=False, verbose=True)
-            self.log(result)
         return result
-
-    @staticmethod
-    def save_blob(filename, blob):
-        audio_file = open(filename, mode="w+b")
-        audio_file.write(blob)
-        audio_file.close()
-        return filename
 
     def log(self, msg):
         self.logger.info(msg)
 
+def to_waveform(key_value):
+    key, blob = key_value
+    if blob is None:
+        raise InvalidAccessCache()
+    waveform, sample_rate = sf.read(io.BytesIO(blob))
+    return key, torch.from_numpy(waveform).float()
+
+def to_embedding(key_value, model):
+    key, waveform = key_value
+    if len(waveform.shape) == 1:
+        waveform = waveform[None][None]
+    elif len(waveform.shape) == 2:
+        waveform = waveform[None]
+    
+    return key, model(waveform)
+
+def cosine_sim(key_value, embedding2):
+    key, embedding1 = key_value
+    print(embedding1.shape)
+    print(embedding2.shape)
+    distance = cdist(embedding1, embedding2, metric='cosine')
+    score = 1 - distance
+    prediction = score >= 0.5
+
+    return key, torch.tensor([score]), torch.tensor([prediction])
 
 class MainService:
     consumer: KafkaConsumer
@@ -195,17 +178,10 @@ class MainService:
         cand_blob = self.ignite_repository.get('uploadCache', cache_key)
         if cand_blob is None:
             raise InvalidAccessCache()
-        cand_audio_filename = self.speech_service.save_blob(filename="cand.wav", blob=cand_blob)
-        return cand_audio_filename
-
-    def prepare_auth_audio(self, auth_uuid, auth_blob):
-        if auth_uuid == '' or auth_uuid == b'' or auth_uuid is None:
-            raise InvalidUuidString()
-        # auth_blob = await self.ignite_repository.get('uploadCache', auth_uuid)
-        if auth_blob is None:
-            raise InvalidAccessCache()
-        auth_audio_filename = self.speech_service.save_blob(filename="auth.wav", blob=auth_blob)
-        return auth_audio_filename
+        waveform, sample_rate = sf.read(io.BytesIO(cand_blob))
+        waveform = torch.from_numpy(waveform).float()
+        # cand_audio_filename = self.speech_service.save_blob(filename="cand.wav", blob=cand_blob)
+        return waveform, sample_rate
 
     def on_next_user_pending(self, msg: Message):
         self.log('on_next_user_pending: msg.value = ')
@@ -214,45 +190,31 @@ class MainService:
         cand_key: str = user_pending.reqId
         user_id: str = user_pending.userId
         
-        # if user_id in self.complete_user:
-        #   raise CompletedUserException(reqId=cand_key, userId=user_id)
-
         cand_key_uuid: UUID = uuid.UUID(cand_key)
-        
-        cand_audio_filename = self.prepare_cand_audio(cand_key_uuid)
+
+        cand_waveform, cand_sample_rate = self.prepare_cand_audio(cand_key_uuid)
         auth_uuids, auth_blobs = self.ignite_repository.scan_key_values('authCache', 'uploadCache')
 
         if len(auth_uuids) == 0:
             raise EmptyRegisterGroupException(reqId=cand_key, userId=user_id)
 
-        flag, match_uuid, match_score = False, None, torch.tensor([-1.0])
-        for auth_uuid, auth_blob in auth_blobs.items():
-            try:
-                auth_audio_filename = self.prepare_auth_audio(auth_uuid, auth_blob)
-            except (InvalidUuidString, InvalidAccessCache) as e:
-                self.log((auth_uuid, e))
-                continue
+        embedding_model = self.speech_service.embedding_model
+        
+        auth_waveforms = map(to_waveform, auth_blobs.items())
+        auth_embeddings = map(lambda key_value: to_embedding(key_value, embedding_model), auth_waveforms)
 
-            try:
-                score, prediction = self.speech_service.verify(cand_audio_filename, auth_audio_filename)
-            except RuntimeError as e:
-                self.log(("verify fail ", e))
-                continue
-            except wave.Error as e:
-                self.log(("wave error ", e))
-                continue
+        _, cand_embedding = to_embedding((cand_key_uuid, cand_waveform), embedding_model)
 
-            self.log((score, prediction))
-            match_score = max(score, match_score)
+        cosine_sims = map(lambda key_value: cosine_sim(key_value, cand_embedding), auth_embeddings)
+        try:
+            match_uuid, match_score, prediction = max(cosine_sims, key=lambda res: res[1]) # uuid, score, prediction
+        except ValueError as e:
+            print(e)
+            raise EmptyRegisterGroupException(reqId=cand_key, userId=user_id)
 
-            if prediction[0]:
-                self.log("GOOD")
-                flag, match_uuid, match_score = True, auth_uuid, score
-                break
-
-        transcribed = (self.speech_service.transcribe(filename=cand_audio_filename))['text'].replace(",", " ")
-        label = str(self.ignite_repository.get('uuid2label', match_uuid) if flag else "unknown").replace(",", " ")
-        infer_result = 'OK' if flag else 'FAIL'
+        transcribed = (self.speech_service.transcribe(waveform=cand_waveform))['text'].replace(",", " ")
+        label = str(self.ignite_repository.get('uuid2label', match_uuid) if prediction else "unknown").replace(",", " ")
+        infer_result = 'OK' if prediction else 'FAIL'
         score = str(match_score.item())
         additional_msg = "voice is not detected; " if match_score == torch.tensor([-1.0]) else None
         
@@ -263,12 +225,10 @@ class MainService:
         message.score = score
         message.transcription = transcribed
 
-        if flag:
+        if prediction:
             message.label = label
-            pass
         if additional_msg:
             message.info = additional_msg
-        # self.complete_user.add(user_id)
 
         return message
 
@@ -299,8 +259,6 @@ class MainService:
                     result: bytes = result.SerializeToString()
                 except EmptyRegisterGroupException as e:
                     result: bytes = str(e).encode('utf-8')
-                #except CompletedUserException as e:
-                #    result: bytes = str(e).encode('utf-8')
                 except RuntimeError as e:
                     self.log(e)
                     continue
@@ -362,24 +320,12 @@ def load_speech_models() -> dict[str, Any]:
         'asr_model': whisper.load_model("tiny.en", in_memory=True)
     }
     # get_embedding = PretrainedSpeakerEmbedding("nvidia/speakerverification_en_titanet_large")
-    # https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb
-    # models['sv_model'].eval()
-    # models['vad_model'].eval()
-    # models['asr_model'].eval()
 
     return models
 
 
 def main(logger):
     logger.info("main")
-
-    # models = await load_speech_models()
-    # speech_service = SpeechService(embedding_model=models['sv_model'],
-    #                                asr_model=models['asr_model'],
-    #                                logger=logger)
-    # ret = speech_service.verify("112.wav", "409.wav")
-    # print(ret)
-    # return
 
     # Load Environment Variables
     try:
