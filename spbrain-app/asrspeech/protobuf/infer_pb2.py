@@ -13,13 +13,14 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0binfer.proto\"\xb1\x01\n\x05Infer\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x13\n\x0binferResult\x18\x02 \x01(\t\x12\x12\n\x05label\x18\x03 \x01(\tH\x00\x88\x01\x01\x12\x12\n\x05score\x18\x04 \x01(\tH\x01\x88\x01\x01\x12\x11\n\x04info\x18\x05 \x01(\tH\x02\x88\x01\x01\x12\x1a\n\rtranscription\x18\x06 \x01(\tH\x03\x88\x01\x01\x42\x08\n\x06_labelB\x08\n\x06_scoreB\x07\n\x05_infoB\x10\n\x0e_transcriptionb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0binfer.proto\x12\x19limdongjin.stomasr.protos\"\xc1\x01\n\x05Infer\x12\r\n\x05reqId\x18\x01 \x01(\t\x12\x0e\n\x06userId\x18\x02 \x01(\t\x12\x13\n\x0binferResult\x18\x03 \x01(\t\x12\x12\n\x05label\x18\x04 \x01(\tH\x00\x88\x01\x01\x12\x12\n\x05score\x18\x05 \x01(\tH\x01\x88\x01\x01\x12\x11\n\x04info\x18\x06 \x01(\tH\x02\x88\x01\x01\x12\x1a\n\rtranscription\x18\x07 \x01(\tH\x03\x88\x01\x01\x42\x08\n\x06_labelB\x08\n\x06_scoreB\x07\n\x05_infoB\x10\n\x0e_transcriptionB\'\n\x19limdongjin.stomasr.protosB\nInferProtob\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'infer_pb2', globals())
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _INFER._serialized_start=16
-  _INFER._serialized_end=193
+  DESCRIPTOR._serialized_options = b'\n\031limdongjin.stomasr.protosB\nInferProto'
+  _INFER._serialized_start=43
+  _INFER._serialized_end=236
 # @@protoc_insertion_point(module_scope)
