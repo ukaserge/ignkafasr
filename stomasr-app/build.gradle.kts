@@ -20,7 +20,7 @@ dependencies {
     api("org.webjars:stomp-websocket:2.3.4")
     api("org.webjars:sockjs-client:1.5.1")
     api("org.springframework.kafka:spring-kafka:2.8.11")
-    // api("org.springframework.security:spring-security-messaging:5.7.5")
+    api("org.springframework.security:spring-security-messaging:5.7.5")
     api("com.fasterxml.jackson.core:jackson-core:2.13.4")
     api("com.fasterxml.jackson.core:jackson-databind:2.13.4.2")
     api("com.google.protobuf:protobuf-java:3.20.3")

@@ -16,7 +16,7 @@ import limdongjin.stomasr.protos.InferProto;
 @Component
 @KafkaListener(
     topics = { KafkaConstants.TOPIC_INFER },
-    concurrency = "3",
+    concurrency = "1",
     groupId = KafkaConstants.GROUP_ID_MY_GROUP
 )
 public class SuccListener {
@@ -40,6 +40,7 @@ public class SuccListener {
             throw new AssertionError("offset can not be null");
         }
         logger.info(String.format("onInfer %s && offset is %d", new String(payload), offset));
+
         try {
             succService.onInfer(payload);
         }catch (Exception e){

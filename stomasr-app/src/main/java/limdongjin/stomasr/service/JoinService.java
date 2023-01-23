@@ -1,6 +1,5 @@
 package limdongjin.stomasr.service;
 
-import limdongjin.stomasr.repository.AuthRepository;
 import limdongjin.stomasr.stomp.MessageDestinationPrefixConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,18 +10,17 @@ import org.springframework.stereotype.Component;
 public class JoinService {
     final static Logger logger = LoggerFactory.getLogger(JoinService.class);
     private final SimpMessageSendingOperations messageSendingOperations;
-    private final AuthRepository authRepository;
+//    private final AuthRepository authRepository;
 
-    public JoinService(final SimpMessageSendingOperations messageSendingOperations, final AuthRepository authRepository){
-        this.authRepository = authRepository;
+    public JoinService(final SimpMessageSendingOperations messageSendingOperations){
         this.messageSendingOperations = messageSendingOperations;
     }
 
     public void join(final String userName){
         logger.info("JOIN "+userName);
-        if(authRepository.containsKey(userName)){
-            messageSendingOperations.convertAndSend(MessageDestinationPrefixConstants.SUCC + userName);
-        }
+//        if(authRepository.containsKey(userName)){
+//            messageSendingOperations.convertAndSend(MessageDestinationPrefixConstants.SUCC + userName, authRepository.getById(userName));
+//        }
 
         messageSendingOperations.convertAndSend(MessageDestinationPrefixConstants.JOINOK + userName, "HELLO; ");
     }

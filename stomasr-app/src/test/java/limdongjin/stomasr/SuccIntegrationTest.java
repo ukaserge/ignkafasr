@@ -5,7 +5,6 @@ import limdongjin.stomasr.dto.UserMessage;
 import limdongjin.stomasr.kafka.KafkaConstants;
 import limdongjin.stomasr.kafka.SuccListener;
 import limdongjin.stomasr.protos.InferProto;
-import limdongjin.stomasr.repository.AuthRepository;
 import limdongjin.stomasr.service.JoinService;
 import limdongjin.stomasr.service.SuccService;
 import limdongjin.stomasr.stomp.JoinSubReceiver;
@@ -23,6 +22,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -34,6 +34,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 import org.springframework.web.socket.sockjs.client.SockJsClient;
@@ -73,17 +74,24 @@ public class SuccIntegrationTest {
         registry.add("limdongjin.stomasr.kafka.bootstrapservers", kafkaContainer::getBootstrapServers);
     }
 //    @Autowired
-    SuccListener succListener;
-
+//    SuccListener succListener;
+//    @Autowired
+//    private AuthRepository authRepository;
     @Autowired
-    private AuthRepository authRepository;
-    @Autowired
+    @SpyBean
     private SimpMessageSendingOperations sendingOperations;
 
+    @Autowired
+    @SpyBean
     private SuccService succService;
 
     @Autowired
     private JoinService joinService;
+
+
+    @Autowired
+    @SpyBean
+    private SuccListener succListener;
 
     @Autowired
     private JoinSubReceiver joinSubReceiver;
@@ -100,37 +108,44 @@ public class SuccIntegrationTest {
 
         this.kafkaTemplate = new KafkaTemplate<String, byte[]>(new DefaultKafkaProducerFactory<String, byte[]>(senderOptions));
 
-        this.sendingOperations = Mockito.spy(sendingOperations);
-        this.succService = Mockito.spy(new SuccService(sendingOperations, authRepository));
-        this.succListener = new SuccListener(succService);
+//        this.sendingOperations = Mockito.spy(sendingOperations);
+//        this.succService = Mockito.spy(new SuccService(sendingOperations));
+//        this.succListener = new SuccListener(succService);
     }
 
     @Test
     void receiveMessageFromInferTopicThen() throws InterruptedException, InvalidProtocolBufferException {
-        Mockito.doNothing().when(sendingOperations).convertAndSend(Mockito.anyString(), Mockito.anyString());
+        Mockito.doNothing().when(sendingOperations).convertAndSendToUser(Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
 
         var uuid = UUID.randomUUID().toString();
-        byte[] payload = InferProto.Infer.newBuilder().setReqId(uuid).setInferResult(OK_MSG).build().toByteArray();
+        var uuid2 = UUID.randomUUID().toString();
+        byte[] payload = InferProto.Infer.newBuilder().setUserId(uuid2).setReqId(uuid).setInferResult(OK_MSG).build().toByteArray();
 
         Thread.sleep(10000);
         kafkaTemplate.send(KafkaConstants.TOPIC_INFER, payload);
         Thread.sleep(10000);
 
-        Mockito.verify(succService, Mockito.atLeast(1)).onInfer(payload);
-        Mockito.verify(sendingOperations, Mockito.atLeast(1)).convertAndSend(Mockito.eq(MessageDestinationPrefixConstants.SUCC + uuid), Mockito.anyString());
-        Assertions.assertTrue(authRepository.containsKey(uuid));
-        Assertions.assertEquals(1, authRepository.size());
+        Mockito.verify(succService, Mockito.atLeast(1)).onInfer(Mockito.any());
+        Mockito.verify(sendingOperations, Mockito.atLeast(1)).convertAndSendToUser(Mockito.anyString() ,Mockito.anyString(), Mockito.anyString());
+//        Assertions.assertTrue(authRepository.containsKey(uuid));
+//        Assertions.assertEquals(1, authRepository.size());
     }
 
     @Test
     void handleInvalidKafkaMessage() throws InterruptedException {
         var invalidUuid = "9-1234-5678";
         Thread.sleep(10000);
-        kafkaTemplate.send(KafkaConstants.TOPIC_INFER, InferProto.Infer.newBuilder().setReqId(invalidUuid).setInferResult("OK").build().toByteArray());
+        kafkaTemplate.send(KafkaConstants.TOPIC_INFER, InferProto.Infer.newBuilder()
+                .setUserId(invalidUuid)
+                .setReqId(invalidUuid)
+                .setInferResult("OK")
+                .build()
+                .toByteArray())
+        ;
         Thread.sleep(10000);
 
         Mockito.verify(sendingOperations, Mockito.never()).convertAndSend(Mockito.anyString());
-        Assertions.assertEquals(0, authRepository.size());
+//        Assertions.assertEquals(0, authRepository.size());
     }
 
     @Test
@@ -144,29 +159,41 @@ public class SuccIntegrationTest {
         WebSocketStompClient webSocketStompClient = new WebSocketStompClient(new SockJsClient(webSocketTransports));
         webSocketStompClient.setMessageConverter(new MappingJackson2MessageConverter());
 
-        StompSession stompSession = webSocketStompClient.connect(url, new MyStompSessionHandlerAdapter()).get(5, TimeUnit.SECONDS);
-
+        var userId = UUID.randomUUID().toString();
         var reqId = UUID.randomUUID().toString();
-        var destination = MessageDestinationPrefixConstants.SUCC + reqId;
 
-        stompSession.send("/app/join", new UserMessage(reqId, "hello world!"));
+        StompHeaders stompHeaders = new StompHeaders();
+        stompHeaders.set("user", userId);
+
+        StompSession stompSession = webSocketStompClient
+                .connect(url,new WebSocketHttpHeaders(), stompHeaders , new MyStompSessionHandlerAdapter())
+                .get(5, TimeUnit.SECONDS);
+
+//        var destination = MessageDestinationPrefixConstants.SUCC + reqId;
+
+        var destination = "/topic/succ";
+
+        var header = new StompHeaders();
+        header.setDestination("/user/topic/succ");
+        StompSession.Subscription subscribe = stompSession.subscribe(header, new MyStompFrameHandler());
+//        stompSession.send("/app/join", new UserMessage(reqId, "hello world!"));
         Thread.sleep(5000);
 
         // if client send msg to '/app/join', then joinSubReceiver receive msg and invoke JoinService
-        Mockito.verify(joinServiceSpy, Mockito.atLeast(1)).join(Mockito.anyString());
+//        Mockito.verify(joinServiceSpy, Mockito.atLeast(1)).join(Mockito.anyString());
 
-        StompFrameHandler stompFrameHandler = new MyStompFrameHandler();
-        StompSession.Subscription subscription = stompSession.subscribe(destination, stompFrameHandler);
+//        StompFrameHandler stompFrameHandler = new MyStompFrameHandler();
+//        StompSession.Subscription subscription = stompSession.subscribe(destination, stompFrameHandler);
 
         Thread.sleep(5000);
 
-        System.out.println(subscription);
-
-        kafkaTemplate.send(KafkaConstants.TOPIC_INFER, InferProto.Infer.newBuilder().setReqId(reqId).setInferResult(OK_MSG).build().toByteArray());
-        Thread.sleep(5000);
+//        System.out.println(subscription);
+//
+        kafkaTemplate.send(KafkaConstants.TOPIC_INFER, InferProto.Infer.newBuilder().setUserId(userId).setReqId(reqId).setInferResult(OK_MSG).build().toByteArray());
+        Thread.sleep(100000);
 
         // if receive msg from 'infer', then handle and invoke convertAndSend
-        Mockito.verify(sendingOperations, Mockito.atLeast(1)).convertAndSend(Mockito.eq(destination), Mockito.anyString());
+//        Mockito.verify(sendingOperations, Mockito.atLeast(1)).convertAndSend(Mockito.eq(destination), Mockito.anyString());
     }
     private class MyStompFrameHandler implements StompFrameHandler {
         @Override

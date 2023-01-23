@@ -1,7 +1,6 @@
 package limdongjin.stomasr.stomp;
 
 import limdongjin.stomasr.dto.UserMessage;
-import limdongjin.stomasr.repository.AuthRepository;
 import limdongjin.stomasr.service.JoinService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +11,8 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.security.Principal;
 
 @RestController
 public class JoinSubReceiver {
@@ -33,9 +34,15 @@ public class JoinSubReceiver {
     public void join(
             @Header("simpSessionId") String sessionId,
             SimpMessageHeaderAccessor sha,
-            @Payload UserMessage payload
+            @Payload UserMessage payload,
+            Principal principal
     ) {
         logger.info("JOIN " + payload.getTargetUserName() + " && message = " + payload.getMessage() + " && sessionId = " + sessionId);
+        if(principal == null){
+            logger.info("Principal is null");
+        }else {
+            logger.info("Principal : " + principal.getName());
+        }
 
         joinService.join(payload.getTargetUserName());
     }

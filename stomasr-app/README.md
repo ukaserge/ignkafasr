@@ -18,7 +18,7 @@
 ./gradlew test --tests "SuccIntegration*"
 
 # BUILD to local registry
-./gradlew jib:dockerBuild
+./gradlew jibDockerBuild
 
 # Build to Google Container Registry
 # must change image repository, name, version

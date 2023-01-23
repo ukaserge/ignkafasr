@@ -6,10 +6,9 @@ option java_package = "limdongjin.stomasr.protos";
 
 message Infer {
   string reqId = 1;
-  string userId = 2;
-  string inferResult = 3;
-  optional string label = 4;
-  optional string score = 5;
-  optional string info = 6;
-  optional string transcription = 7;
+  string inferResult = 2;
+  optional string label = 3;
+  optional string score = 4;
+  optional string info = 5;
+  optional string transcription = 6;
 }
