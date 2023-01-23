@@ -75,6 +75,7 @@ public class IgniteCacheConfig {
                 //        cl.destroyCache(cacheName);
                 cl.<UUID, byte[]>getOrCreateCache(buildDefaultClientCacheConfiguration("uploadCache"));
                 cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("authCache"));
+                cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("reqId2userId"));
                 cl.<UUID, String>getOrCreateCache(buildDefaultClientCacheConfiguration("uuid2label"));
                 flag = false;
             }catch (Exception e){
@@ -96,17 +97,17 @@ public class IgniteCacheConfig {
         cacheCfg.setExpiryPolicy(new ExpiryPolicy() {
             @Override
             public Duration getExpiryForCreation() {
-                return Duration.FIVE_MINUTES;
+                return Duration.THIRTY_MINUTES;
             }
 
             @Override
             public Duration getExpiryForAccess() {
-                return Duration.FIVE_MINUTES;
+                return Duration.THIRTY_MINUTES;
             }
 
             @Override
             public Duration getExpiryForUpdate() {
-                return Duration.FIVE_MINUTES;
+                return Duration.THIRTY_MINUTES;
             }
         });
 

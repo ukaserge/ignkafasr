@@ -24,21 +24,23 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MyTestUtil {
-    private static MultipartBodyBuilder prepareMultipartBodyBuilder(ClassPathResource fileFieldValue, String nameFieldValue, String labelFieldValue){
+    private static MultipartBodyBuilder prepareMultipartBodyBuilder(ClassPathResource fileFieldValue, String nameFieldValue, String labelFieldValue, String userIdFieldValue){
         MultipartBodyBuilder multipartBodyBuilder = new MultipartBodyBuilder();
         multipartBodyBuilder.part("file", fileFieldValue);
         multipartBodyBuilder.part("name", nameFieldValue);
         multipartBodyBuilder.part("label", labelFieldValue);
+        multipartBodyBuilder.part("userId", userIdFieldValue);
+
         return multipartBodyBuilder;
     }
 
-    public static BodyInserters.MultipartInserter prepareMultipartInserter(ClassPathResource fileFieldValue, String nameFieldValue, String labelFieldValue) {
-        MultipartBodyBuilder multipartBodyBuilder = prepareMultipartBodyBuilder(fileFieldValue, nameFieldValue, labelFieldValue);
+    public static BodyInserters.MultipartInserter prepareMultipartInserter(ClassPathResource fileFieldValue, String reqIdFieldValue, String labelFieldValue, String userIdFieldValue) {
+        MultipartBodyBuilder multipartBodyBuilder = prepareMultipartBodyBuilder(fileFieldValue, reqIdFieldValue, labelFieldValue, userIdFieldValue);
         return BodyInserters.fromMultipartData(multipartBodyBuilder.build());
     }
 
-    public static ServerRequest prepareServerRequest(ClassPathResource fileFieldValue, String nameFieldValue, String labelFieldValue) {
-        MultipartBodyBuilder multipartBodyBuilder = prepareMultipartBodyBuilder(fileFieldValue, nameFieldValue, labelFieldValue);
+    public static ServerRequest prepareServerRequest(ClassPathResource fileFieldValue, String nameFieldValue, String labelFieldValue, String userIdFieldValue) {
+        MultipartBodyBuilder multipartBodyBuilder = prepareMultipartBodyBuilder(fileFieldValue, nameFieldValue, labelFieldValue, userIdFieldValue);
         MockClientHttpRequest outputMessage = new MockClientHttpRequest(HttpMethod.POST, URI.create("/"));
 
         Mono<Void> writeMono = new MultipartHttpMessageWriter()

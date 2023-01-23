@@ -20,7 +20,7 @@
  
 # BUILD to local registry
 ./gradlew clean
-./gradlew jib:dockerBuild
+./gradlew jibDockerBuild
 
 # Build to Google Container Registry
 # must change image repository, name

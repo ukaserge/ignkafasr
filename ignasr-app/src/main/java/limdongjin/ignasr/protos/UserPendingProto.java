@@ -29,6 +29,18 @@ public final class UserPendingProto {
      */
     com.google.protobuf.ByteString
         getReqIdBytes();
+
+    /**
+     * <code>string userId = 2;</code>
+     * @return The userId.
+     */
+    java.lang.String getUserId();
+    /**
+     * <code>string userId = 2;</code>
+     * @return The bytes for userId.
+     */
+    com.google.protobuf.ByteString
+        getUserIdBytes();
   }
   /**
    * Protobuf type {@code limdongjin.ignasr.protos.UserPending}
@@ -44,6 +56,7 @@ public final class UserPendingProto {
     }
     private UserPending() {
       reqId_ = "";
+      userId_ = "";
     }
 
     @java.lang.Override
@@ -109,6 +122,44 @@ public final class UserPendingProto {
       }
     }
 
+    public static final int USERID_FIELD_NUMBER = 2;
+    private volatile java.lang.Object userId_;
+    /**
+     * <code>string userId = 2;</code>
+     * @return The userId.
+     */
+    @java.lang.Override
+    public java.lang.String getUserId() {
+      java.lang.Object ref = userId_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        userId_ = s;
+        return s;
+      }
+    }
+    /**
+     * <code>string userId = 2;</code>
+     * @return The bytes for userId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getUserIdBytes() {
+      java.lang.Object ref = userId_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        userId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -126,6 +177,9 @@ public final class UserPendingProto {
       if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(reqId_)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 1, reqId_);
       }
+      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(userId_)) {
+        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, userId_);
+      }
       getUnknownFields().writeTo(output);
     }
 
@@ -137,6 +191,9 @@ public final class UserPendingProto {
       size = 0;
       if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(reqId_)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, reqId_);
+      }
+      if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(userId_)) {
+        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, userId_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSize = size;
@@ -155,6 +212,8 @@ public final class UserPendingProto {
 
       if (!getReqId()
           .equals(other.getReqId())) return false;
+      if (!getUserId()
+          .equals(other.getUserId())) return false;
       if (!getUnknownFields().equals(other.getUnknownFields())) return false;
       return true;
     }
@@ -168,6 +227,8 @@ public final class UserPendingProto {
       hash = (19 * hash) + getDescriptor().hashCode();
       hash = (37 * hash) + REQID_FIELD_NUMBER;
       hash = (53 * hash) + getReqId().hashCode();
+      hash = (37 * hash) + USERID_FIELD_NUMBER;
+      hash = (53 * hash) + getUserId().hashCode();
       hash = (29 * hash) + getUnknownFields().hashCode();
       memoizedHashCode = hash;
       return hash;
@@ -298,6 +359,8 @@ public final class UserPendingProto {
         super.clear();
         reqId_ = "";
 
+        userId_ = "";
+
         return this;
       }
 
@@ -325,6 +388,7 @@ public final class UserPendingProto {
       public limdongjin.ignasr.protos.UserPendingProto.UserPending buildPartial() {
         limdongjin.ignasr.protos.UserPendingProto.UserPending result = new limdongjin.ignasr.protos.UserPendingProto.UserPending(this);
         result.reqId_ = reqId_;
+        result.userId_ = userId_;
         onBuilt();
         return result;
       }
@@ -377,6 +441,10 @@ public final class UserPendingProto {
           reqId_ = other.reqId_;
           onChanged();
         }
+        if (!other.getUserId().isEmpty()) {
+          userId_ = other.userId_;
+          onChanged();
+        }
         this.mergeUnknownFields(other.getUnknownFields());
         onChanged();
         return this;
@@ -408,6 +476,11 @@ public final class UserPendingProto {
 
                 break;
               } // case 10
+              case 18: {
+                userId_ = input.readStringRequireUtf8();
+
+                break;
+              } // case 18
               default: {
                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                   done = true; // was an endgroup tag
@@ -499,6 +572,82 @@ public final class UserPendingProto {
         onChanged();
         return this;
       }
+
+      private java.lang.Object userId_ = "";
+      /**
+       * <code>string userId = 2;</code>
+       * @return The userId.
+       */
+      public java.lang.String getUserId() {
+        java.lang.Object ref = userId_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          userId_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>string userId = 2;</code>
+       * @return The bytes for userId.
+       */
+      public com.google.protobuf.ByteString
+          getUserIdBytes() {
+        java.lang.Object ref = userId_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          userId_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>string userId = 2;</code>
+       * @param value The userId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUserId(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  
+        userId_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>string userId = 2;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearUserId() {
+        
+        userId_ = getDefaultInstance().getUserId();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>string userId = 2;</code>
+       * @param value The bytes for userId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUserIdBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+        
+        userId_ = value;
+        onChanged();
+        return this;
+      }
       @java.lang.Override
       public final Builder setUnknownFields(
           final com.google.protobuf.UnknownFieldSet unknownFields) {
@@ -578,9 +727,10 @@ public final class UserPendingProto {
   static {
     java.lang.String[] descriptorData = {
       "\n$resources/protobuf/userpending.proto\022\030" +
-      "limdongjin.ignasr.protos\"\034\n\013UserPending\022" +
-      "\r\n\005reqId\030\001 \001(\tB,\n\030limdongjin.ignasr.prot" +
-      "osB\020UserPendingProtob\006proto3"
+      "limdongjin.ignasr.protos\",\n\013UserPending\022" +
+      "\r\n\005reqId\030\001 \001(\t\022\016\n\006userId\030\002 \001(\tB,\n\030limdon" +
+      "gjin.ignasr.protosB\020UserPendingProtob\006pr" +
+      "oto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -591,7 +741,7 @@ public final class UserPendingProto {
     internal_static_limdongjin_ignasr_protos_UserPending_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_limdongjin_ignasr_protos_UserPending_descriptor,
-        new java.lang.String[] { "ReqId", });
+        new java.lang.String[] { "ReqId", "UserId", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

@@ -20,14 +20,15 @@ class MultiPartUtilTests {
     @Test
     void canLoadWavBlobFromServerRequest() throws IOException, UnsupportedAudioFileException {
         // Given
-        var name = UUID.randomUUID().toString();
+        var reqId = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
         ClassPathResource classPathResource = new ClassPathResource("data/foo.wav");
         File file = classPathResource.getFile();
         AudioInputStream expectedAudioInputStream = AudioSystem.getAudioInputStream(file);
         String label = "ldj";
 
         // Prepare ServerRequest
-        ServerRequest serverRequest = MyTestUtil.prepareServerRequest(classPathResource, name, label);
+        ServerRequest serverRequest = MyTestUtil.prepareServerRequest(classPathResource, reqId, label, userId);
 
         // Extract file, name from ServerRequest, Load Audio
         Function<String, Mono<byte[]>> fieldNameToBytesMono = MultiPartUtil.toFunctionThatFieldNameToBytesMono(serverRequest);
@@ -37,7 +38,7 @@ class MultiPartUtilTests {
         AudioInputStream actualAudioInputStream = AudioSystem.getAudioInputStream(new ByteArrayInputStream(fileMono.block()));
 
         // Verify
-        Assertions.assertEquals(name, nameMono.block());
+        Assertions.assertEquals(reqId, nameMono.block());
         Assertions.assertEquals(expectedAudioInputStream.getFormat().toString(), actualAudioInputStream.getFormat().toString());
         Assertions.assertEquals(expectedAudioInputStream.getFrameLength(), actualAudioInputStream.getFrameLength());
 

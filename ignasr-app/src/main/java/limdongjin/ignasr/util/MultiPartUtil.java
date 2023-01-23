@@ -25,7 +25,7 @@ public class MultiPartUtil {
         return request
                 .multipartData()
                 .flatMapIterable(Map::entrySet)
-                .publishOn(Schedulers.parallel())
+//                .publishOn(Schedulers.parallel())
         ;
     }
 
@@ -36,7 +36,7 @@ public class MultiPartUtil {
                 .onErrorMap(NoSuchElementException.class, MultiPartUtil::missingRequiredFields)
                 .onErrorMap(DataBufferLimitException.class, MultiPartUtil::exceedBufferSizeLimit)
                 .flatMap(MultiPartUtil::toBytesMono)
-                .publishOn(Schedulers.boundedElastic())
+//                .publishOn(Schedulers.boundedElastic())
         ;
     }
 

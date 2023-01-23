@@ -1,12 +1,9 @@
 package limdongjin.ignasr.protos;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class UserPendingProtoTest {
     @Test
@@ -14,6 +11,7 @@ class UserPendingProtoTest {
         UserPendingProto.UserPending userPending = UserPendingProto.UserPending
                 .newBuilder()
                 .setReqId(UUID.randomUUID().toString())
+                .setUserId(UUID.randomUUID().toString())
                 .build();
 
         System.out.println(userPending);

@@ -7,6 +7,7 @@ import com.github.dockerjava.api.model.Ports;
 import limdongjin.ignasr.MyTestUtil;
 import limdongjin.ignasr.repository.IgniteRepository;
 import limdongjin.ignasr.router.SpeechRouter;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,14 +48,11 @@ import java.util.function.Consumer;
 @DirtiesContext
 @ExtendWith(SpringExtension.class)
 public class SpeechUploadHandlerIntegrationTest {
-
     // container port binding
     // https://github.com/testcontainers/testcontainers-java/issues/256#issuecomment-405879835
     static int hostPort = 20800;
     static int containerExposedPort = 10800;
     static Consumer<CreateContainerCmd> cmd = e -> e.withPortBindings(new PortBinding(Ports.Binding.bindPort(hostPort), new ExposedPort(containerExposedPort)));
-//    @LocalServerPort
-//    private Integer port;
 
     @Container
     static GenericContainer<?> ignite = new GenericContainer<>(DockerImageName.parse("apacheignite/ignite:2.14.0"))
@@ -73,19 +71,16 @@ public class SpeechUploadHandlerIntegrationTest {
     }
 
     @Autowired
-    private IgniteRepository igniteRepository;
-
-    @Autowired
-    private ReactiveKafkaProducerTemplate<String, byte[]> reactiveKafkaProducerTemplate;
-
-    @Autowired
     private SpeechUploadHandler speechUploadHandler;
 
     @Test
     void is200OK(){
-        var uuidString = UUID.randomUUID().toString();
+        var reqId = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
         var label = "dong";
-        BodyInserters.MultipartInserter multipartInserter = MyTestUtil.prepareMultipartInserter(new ClassPathResource("data/foo.wav"), uuidString, label);
+        var file = new ClassPathResource("data/foo.wav");
+
+        BodyInserters.MultipartInserter multipartInserter = MyTestUtil.prepareMultipartInserter(file, reqId, label, userId);
         WebTestClient webTestClient = WebTestClient.bindToRouterFunction(new SpeechRouter().speechRoute(speechUploadHandler))
                 .configureClient()
                 .build();
@@ -98,13 +93,20 @@ public class SpeechUploadHandlerIntegrationTest {
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .returnResult(String.class);
-        System.out.println(ret1);
+
+        String responseBody = ret1.getResponseBody().single().block();
+        Assertions.assertNotNull(responseBody);
+
+        System.out.println(responseBody);
+
+        Assertions.assertTrue(responseBody.contains("success"));
 
         FluxExchangeResult<String> ret2 = webTestClient.get()
                 .uri("/")
                 .exchange()
                 .expectStatus().is2xxSuccessful()
                 .returnResult(String.class);
+
         System.out.println(ret2);
     }
 }

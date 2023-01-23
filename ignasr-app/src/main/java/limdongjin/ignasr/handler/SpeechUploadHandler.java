@@ -45,37 +45,41 @@ public class SpeechUploadHandler {
     public Mono<ServerResponse> upload(ServerRequest request){
         Function<String, Mono<byte[]>> fieldNameToBytesMono = MultiPartUtil.toFunctionThatFieldNameToBytesMono(request);
 
-        Mono<UUID> uuidMono = fieldNameToBytesMono.apply("name").map(s -> UUID.fromString(new String(s)));
+        Mono<UUID> userIdMono = fieldNameToBytesMono.apply("userId").map(s -> UUID.fromString(new String(s)));
+        Mono<UUID> reqIdMono = fieldNameToBytesMono.apply("name").map(s -> UUID.fromString(new String(s)));
         Mono<byte[]> fileMono = fieldNameToBytesMono.apply("file");
-        Mono<String> labelMono = fieldNameToBytesMono.apply("label").map(String::new);
+//        Mono<String> labelMono = fieldNameToBytesMono.apply("label").map(String::new);
 
-        Mono<Mono<UUID>> fileUploadMonoMono = Mono.zip(uuidMono, fileMono)
-                .flatMap(uuid2file -> igniteRepository.putAsync("uploadCache", uuid2file.getT1(), uuid2file.getT2()))
+        Mono<Mono<UUID>> fileUploadMonoMono = Mono.zip(reqIdMono, fileMono)
+                .flatMap(reqId2file -> igniteRepository.putAsync("uploadCache", reqId2file.getT1(), reqId2file.getT2()))
         ;
 
-        Mono<Mono<UUID>> labelUploadMonoMono = Mono.zip(labelMono, uuidMono)
-                .flatMap(label2uuid -> igniteRepository.putAsync("uuid2label", label2uuid.getT2(), label2uuid.getT1()))
+        Mono<Mono<UUID>> userIdUploadMonoMono = Mono.zip(reqIdMono, userIdMono)
+                .flatMap(reqId2userId -> igniteRepository.putAsync("reqId2userId", reqId2userId.getT1(), reqId2userId.getT2()))
         ;
         
         // TODO refactoring
-        return Mono.zip(fileUploadMonoMono, labelUploadMonoMono, Mono.just(labelMono))
-                .flatMap(uuid2label -> {
-                    Mono<UUID> fileUploadMono = uuid2label.getT1();
-                    Mono<UUID> labelUploadMono = uuid2label.getT2();
-                    Mono<String> labelMonoo = uuid2label.getT3();
+        return Mono.zip(fileUploadMonoMono, userIdUploadMonoMono, Mono.just(userIdMono))
+                .flatMap(monoTuple3 -> {
+                    Mono<UUID> fileUploadMono = monoTuple3.getT1();
+                    Mono<UUID> userIdUploadMono = monoTuple3.getT2();
+                    Mono<UUID> userIdMonoJust = monoTuple3.getT3();
+//                    Mono<String> labelMonoJust = monoTuple3.getT4();
 
-                    return Mono.zip(fileUploadMono, labelUploadMono, labelMonoo)
-                            .flatMap(tuple2 -> {
-                                var reqId = tuple2.getT1().toString();
-                                byte[] userPendingBytes = UserPendingProto.UserPending
+                    return Mono.zip(fileUploadMono, userIdUploadMono, userIdMonoJust)
+                            .flatMap(tuple3 -> {
+                                var reqId = tuple3.getT1().toString();
+                                var userId = tuple3.getT3().toString();
+                                byte[] reqIdBytes = UserPendingProto.UserPending
                                         .newBuilder()
                                         .setReqId(reqId)
+                                        .setUserId(userId)
                                         .build()
                                         .toByteArray();
 
-                                return reactiveKafkaProducerTemplate.send("user-pending", userPendingBytes).thenReturn(tuple2);
+                                return reactiveKafkaProducerTemplate.send("user-pending", reqIdBytes).thenReturn(tuple3);
                             })
-                            .flatMap(tuple2 -> toSuccessResponseDtoMono(tuple2.getT1(), "success upload; ", tuple2.getT3()));
+                            .flatMap(tuple3 -> toSuccessResponseDtoMono(tuple3.getT1(), "success upload; userId = ", tuple3.getT3().toString()));
                 })
                 .flatMap(responseDto -> ok().headers(this::addCorsHeaders).body(Mono.just(responseDto), SpeechUploadResponseDto.class))
         ;

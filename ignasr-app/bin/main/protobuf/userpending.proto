@@ -7,5 +7,4 @@ option java_package = "limdongjin.ignasr.protos";
 
 message UserPending {
   string reqId = 1;
-  string userId = 2;
 }
