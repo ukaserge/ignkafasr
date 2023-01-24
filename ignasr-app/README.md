@@ -1,4 +1,4 @@
-# IgnASR
+# ignasr
 
 ## About ignasr
 - spring webflux + kafka producer + ignite thin client
@@ -25,6 +25,5 @@
 # Build to Google Container Registry
 # must change image repository, name
 ./gradlew jib --image=gcr.io/limdongjin-kube/ignasr
-
 ```
  
