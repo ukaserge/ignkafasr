@@ -1,4 +1,4 @@
-import com.google.cloud.tools.jib.api.buildplan.ImageFormat.*
+import com.google.cloud.tools.jib.api.buildplan.ImageFormat
 
 plugins {
     `java-library`
@@ -7,23 +7,20 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
-    maven {
-        url = uri("https://repo.maven.apache.org/maven2/")
-    }
+    mavenCentral()
 }
 
 var springVersion = "2.7.6"
 dependencies {
-    api("org.springframework.boot:spring-boot-starter-web:$springVersion")
-    api("org.springframework.boot:spring-boot-starter-websocket:$springVersion")
-    api("org.webjars:stomp-websocket:2.3.4")
-    api("org.webjars:sockjs-client:1.5.1")
-    api("org.springframework.kafka:spring-kafka:2.8.11")
-    api("org.springframework.security:spring-security-messaging:5.7.5")
-    api("com.fasterxml.jackson.core:jackson-core:2.13.4")
-    api("com.fasterxml.jackson.core:jackson-databind:2.13.4.2")
-    api("com.google.protobuf:protobuf-java:3.20.3")
+    implementation("org.springframework.boot:spring-boot-starter-web:$springVersion")
+    implementation("org.springframework.boot:spring-boot-starter-websocket:$springVersion")
+    implementation("org.webjars:stomp-websocket:2.3.4")
+    implementation("org.webjars:sockjs-client:1.5.1")
+    implementation("org.springframework.kafka:spring-kafka:2.8.11")
+    implementation("org.springframework.security:spring-security-messaging:5.7.5")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.13.4")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.13.4.2")
+    implementation("com.google.protobuf:protobuf-java:3.20.3")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test:$springVersion")
     testImplementation("org.springframework.kafka:spring-kafka-test:2.8.11")
@@ -60,7 +57,7 @@ jib {
     }
     container {
         jvmFlags = jvmOptions
-        format = OCI
+        format = ImageFormat.OCI
     }
 }
 
