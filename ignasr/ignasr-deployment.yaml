@@ -18,7 +18,7 @@ spec:
     spec:
       serviceAccountName: ignasr
       containers:
-        - image: gcr.io/limdongjin-kube/ignasr:2.0
+        - image: gcr.io/limdongjin-kube/ignasr
           name: ignasr
           resources:
             requests:
