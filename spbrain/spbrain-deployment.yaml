@@ -33,18 +33,18 @@ spec:
               memory: 8Gi
           env:
             - name: BOOTSTRAPSERVERS
-              value: my-cluster-kafka-bootstrap.kafka-cluster:9092
+              value: "my-cluster-kafka-bootstrap.kafka-cluster:9092"
             - name: KAFKA_USER_NAME
-              value: spbrain
+              value: "spbrain"
             - name: KAFKA_USER_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: spbrain
-                  key: "password"
+                  key: password
             - name: IGNITE_SERVICE_NAME
-              value: ignite-service
+              value: "ignite-service"
             - name: IGNITE_PORT
-              value: 10800
+              value: "10800"
  
   volumeClaimTemplates:
     - metadata:
