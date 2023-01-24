@@ -1,0 +1,136 @@
+version: '3'
+
+volumes:
+  zookeeper-data:
+    driver: local
+  zookeeper-log:
+    driver: local
+  kafka-data:
+    driver: local
+services:
+  ignite:
+    image: apacheignite/ignite:2.14.0
+    blkio_config:
+      weight: 700
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.3'
+          memory: 600M
+    environment:
+      - JVM_OPTS=-Xms512m -Xmx512m -XX:+AggressiveOpts -XX:+UseG1GC -XX:MaxPermSize=256m -XX:+DisableExplicitGC -DIGNITE_PERFORMANCE_SUGGESTIONS_DISABLED=true
+    networks:
+      - mybridge-network
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data:Z
+      - zookeeper-log:/var/lib/zookeeper/log:Z
+    environment:
+      ZOOKEEPER_CLIENT_PORT: '2181'
+      ZOOKEEPER_TICK_TIME: '2000'
+      ZOOKEEPER_ADMIN_ENABLE_SERVER: 'false'
+    networks:
+      - mybridge-network
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    restart: always
+    environment:
+      KAFKA_BROKER_ID: "1"
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_JMX_PORT: "9091"
+      NUM_PARTITIONS: "12"
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes: 
+      - kafka-data:/var/lib/kafka/data:Z
+    networks:
+      - mybridge-network
+  akhq:
+    image: tchiotludo/akhq
+    restart: always
+    blkio_config:
+      weight: 200
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:9092"
+    ports:
+      - 8080:8080
+    networks:
+      - mybridge-network
+  spbrain:
+    image: limdongjin/spbrain
+    restart: always
+    environment:
+      BOOTSTRAPSERVERS: kafka:9092
+      IGNITE_SERVICE_NAME: ignite
+      IGNITE_PORT: 10800
+    deploy:
+      resources:
+        reservations:
+          cpus: '0.4'
+          memory: 300M
+    blkio_config:
+      weight: 700
+    volumes:
+      - /root
+    networks:
+      - mybridge-network
+  ignasr:
+    image: limdongjin/ignasr
+    restart: always
+    blkio_config:
+      weight: 400
+    ports:
+      - 8088:8088
+    environment:
+      MYPORT: 8088
+      ALLOWORIGIN: "*" # localhost:3000
+      BOOTSTRAPSERVERS: kafka:9092
+      SASLJAASCONFIG: unused
+      SECURITY_PROTOCOL: PLAINTEXT
+      SASL_MECHANISM: unused
+      IGNITEMODE: local
+      NAMESPACE: unused
+      IGNITESERVICENAME: unused
+      IGNITEADDRESSES: ignite:10800
+    networks:
+      - mybridge-network
+  stomasr:
+    image: limdongjin/stomasr
+    restart: always
+    blkio_config:
+      weight: 400
+    ports:
+      - 8089:8089
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.4'
+          memory: 300M
+    environment:
+      MYPORT: 8089
+      ALLOWORIGIN: "*" #localhost:3000
+      BOOTSTRAPSERVERS: kafka:9092
+      SASLJAASCONFIG: unused
+      SECURITY_PROTOCOL: PLAINTEXT
+      SASL_MECHANISM: unused
+    networks:
+      - mybridge-network
+networks:
+  mybridge-network:
+    driver: bridge
