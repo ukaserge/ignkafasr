@@ -1,7 +1,9 @@
-.cache
+poetry.lock
+.idea
+.cache/
 dist
 .venv
 pretrained_models
 pretrained_model_checkpoints
-tmp/
 __pycache__
+.DS_Store

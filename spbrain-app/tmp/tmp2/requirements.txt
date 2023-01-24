@@ -1,8 +1,0 @@
-pyignite==0.6.0
-torch==1.13.0
-torchaudio==0.13.0
-speechbrain
-aiokafka
-confluent-kafka
-typing
-testcontainers

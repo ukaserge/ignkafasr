@@ -1,5 +1,3 @@
-# SPBRAIN_VERSION=5.6
-# docker build -t spbrain:$SPBRAIN_VERSION . && docker tag spbrain:$SPBRAIN_VERSION gcr.io/limdongjin-kube/spbrain:$SPBRAIN_VERSION && docker push gcr.io/limdongjin-kube/spbrain:$SPBRAIN_VERSION
 FROM python:3.9-slim-buster as builder
 
 WORKDIR /app
