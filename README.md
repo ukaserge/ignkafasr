@@ -136,7 +136,8 @@ kubectl create -f stomasr/stomasr-deployment.yaml
 TMPP_HOME=$(pwd)
 cd $TMPP_HOME/spbrain-app
 
-docker build -t gcr.io/limdongjin-kube/limdongjin/spbrain -f Dockerfile.prod .
+docker build -t gcr.io/limdongjin-kube/spbrain -f Dockerfile.prod .
+docker push gcr.io/limdongjin-kube/spbrain
 cd $TMPP_HOME
 
 kubectl create -f spbrain/spbrain-sa.yaml
