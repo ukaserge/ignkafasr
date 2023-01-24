@@ -1,4 +1,4 @@
-import com.google.cloud.tools.jib.api.buildplan.ImageFormat.*
+import com.google.cloud.tools.jib.api.buildplan.ImageFormat
 
 plugins {
     `java-library`
@@ -7,25 +7,22 @@ plugins {
 }
 
 repositories {
-    mavenLocal()
-    maven {
-        url = uri("https://repo.maven.apache.org/maven2/")
-    }
+    mavenCentral()
 }
 
 val igniteVersion = "2.14.0"
 val springVersion = "3.0.1"
 dependencies {
-    api("org.springframework.boot:spring-boot-starter-webflux:$springVersion")
-    api("org.springframework.kafka:spring-kafka:$springVersion")
-    api("io.projectreactor.kafka:reactor-kafka:1.3.15")
-    api("io.projectreactor:reactor-core:3.5.1")
+    implementation("org.springframework.boot:spring-boot-starter-webflux:$springVersion")
+    implementation("org.springframework.kafka:spring-kafka:$springVersion")
+    implementation("io.projectreactor.kafka:reactor-kafka:1.3.15")
+    implementation("io.projectreactor:reactor-core:3.5.1")
 
-    api("org.apache.ignite:ignite-core:$igniteVersion")
-    api("org.apache.ignite:ignite-spring:$igniteVersion")
-    api("org.apache.ignite:ignite-indexing:$igniteVersion")
-    api("org.apache.ignite:ignite-kubernetes:$igniteVersion")
-    api("com.google.protobuf:protobuf-java:3.20.3")
+    implementation("org.apache.ignite:ignite-core:$igniteVersion")
+    implementation("org.apache.ignite:ignite-spring:$igniteVersion")
+    implementation("org.apache.ignite:ignite-indexing:$igniteVersion")
+    implementation("org.apache.ignite:ignite-kubernetes:$igniteVersion")
+    implementation("com.google.protobuf:protobuf-java:3.20.3")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test:$springVersion")
     testImplementation("io.projectreactor:reactor-test:3.5.1")
@@ -66,7 +63,7 @@ jib {
     }
     container {
         jvmFlags = jvmOptions
-        format = OCI
+        format = ImageFormat.OCI
     }
 }
 
