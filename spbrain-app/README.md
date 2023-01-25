@@ -8,7 +8,9 @@
 
 - you can build using this script:
 ```bash
+# development
 docker build -t limdongjin/spbrain .
 
-
+# production
+docker build -t gcr.io/limdongjin-kube/spbrain -f Dockerfile.prod .
 ```
