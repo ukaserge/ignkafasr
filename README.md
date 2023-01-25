@@ -9,7 +9,8 @@ using apache ignite, apache kafka, pyannote, speechbrain, whisper, stomp, spring
 ## Demo 
 
 - (closed) [https://kafasr.limdongjin.com](https://kafasr.limdongjin.com)
-- [demo video (vimeo)](https://vimeo.com/manage/videos/785495352)
+- [demo video (ver1) ](https://vimeo.com/manage/videos/785495352)
+- [demo video (ver2)](https://www.youtube.com/watch?v=VZdIU6MMds4)
 
 ## How to build?
 
