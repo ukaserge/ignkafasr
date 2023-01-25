@@ -25,8 +25,8 @@ import java.util.UUID;
 @Configuration
 public class IgniteCacheConfig {
     public static final String cacheName = "uploadCache";
-    public static final CacheMode cacheMode = CacheMode.PARTITIONED;
-    public static final CacheWriteSynchronizationMode cacheWriteSyncMode = CacheWriteSynchronizationMode.PRIMARY_SYNC;
+    public static final CacheMode cacheMode = CacheMode.REPLICATED;
+    public static final CacheWriteSynchronizationMode cacheWriteSyncMode = CacheWriteSynchronizationMode.FULL_ASYNC;
     public static final CacheAtomicityMode cacheAtomicityMode = CacheAtomicityMode.ATOMIC;
 
     @Value("${limdongjin.ignasr.ignite.namespace}")
@@ -56,7 +56,7 @@ public class IgniteCacheConfig {
             return clientCfg;
         }
         clientCfg.setAddresses(addresses);
-        clientCfg.setTcpNoDelay(false);
+//        clientCfg.setTcpNoDelay(false);
         clientCfg.setPartitionAwarenessEnabled(true);
         clientCfg.setSendBufferSize(15*1024*1024);
         clientCfg.setReceiveBufferSize(15*1024*1024);
@@ -73,14 +73,13 @@ public class IgniteCacheConfig {
             try (IgniteClient cl = Ignition.startClient(clientCfg)) {
                 //        ClientCacheConfiguration cacheCfg = buildDefaultClientCacheConfiguration(cacheName);
                 //        cl.destroyCache(cacheName);
-                cl.<UUID, byte[]>getOrCreateCache(buildDefaultClientCacheConfiguration("uploadCache"));
-                cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("authCache"));
-                cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("reqId2userId"));
-                cl.<UUID, String>getOrCreateCache(buildDefaultClientCacheConfiguration("uuid2label"));
+                cl.<UUID, byte[]>getOrCreateCache(buildDefaultClientCacheConfiguration("uploadCache", Duration.ONE_HOUR));
+                cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("authCache", Duration.ONE_HOUR));
+                cl.<UUID, UUID>getOrCreateCache(buildDefaultClientCacheConfiguration("reqId2userId", Duration.ONE_HOUR));
+                cl.<UUID, String>getOrCreateCache(buildDefaultClientCacheConfiguration("uuid2label", Duration.ONE_HOUR));
                 flag = false;
             }catch (Exception e){
                 e.printStackTrace();
-                continue;
             }
         }
         Thread.sleep(2000);
@@ -88,32 +87,30 @@ public class IgniteCacheConfig {
         return clientCfg;
     }
 
-    private static ClientCacheConfiguration buildDefaultClientCacheConfiguration(String name) {
+    private static ClientCacheConfiguration buildDefaultClientCacheConfiguration(String cacheName, Duration expiryDuration) {
         ClientCacheConfiguration cacheCfg = new ClientCacheConfiguration();
-        cacheCfg.setName(name);
+        cacheCfg.setName(cacheName);
         cacheCfg.setCacheMode(cacheMode);
         cacheCfg.setWriteSynchronizationMode(cacheWriteSyncMode);
         cacheCfg.setAtomicityMode(cacheAtomicityMode);
+        cacheCfg.setQueryParallelism(5);
+
         cacheCfg.setExpiryPolicy(new ExpiryPolicy() {
             @Override
             public Duration getExpiryForCreation() {
-                return Duration.THIRTY_MINUTES;
+                return expiryDuration;
             }
 
             @Override
             public Duration getExpiryForAccess() {
-                return Duration.THIRTY_MINUTES;
+                return expiryDuration;
             }
 
             @Override
             public Duration getExpiryForUpdate() {
-                return Duration.THIRTY_MINUTES;
+                return expiryDuration;
             }
         });
-
-//        cacheCfg.setPartitionLossPolicy(PartitionLossPolicy.READ_WRITE_SAFE);
-//        cacheCfg.setBackups(3);
-        // cacheCfg.setGroupName(cacheGroupName);
 
         return cacheCfg;
     }
