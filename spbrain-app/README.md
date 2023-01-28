@@ -12,5 +12,5 @@
 docker build -t limdongjin/spbrain .
 
 # production
-docker build -t gcr.io/limdongjin-kube/spbrain -f Dockerfile.prod .
+docker build -t gcr.io/limdongjin-kube/spbrain . && docker push gcr.io/limdongjin-kube/spbrain
 ```

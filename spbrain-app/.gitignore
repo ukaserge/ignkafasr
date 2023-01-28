@@ -1,3 +1,4 @@
+*.ckpt
 poetry.lock
 .idea
 .cache/

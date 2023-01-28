@@ -1,3 +1,5 @@
+dist
+poetry.lock
 .vscode
 .cache
 .idea

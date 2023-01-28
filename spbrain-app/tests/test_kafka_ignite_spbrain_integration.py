@@ -9,7 +9,7 @@ def test_integration():
         # .with_bind_ports(10800, 20800) \
         # .with_exposed_ports(20800)
 
-    kafka_container: KafkaContainer = KafkaContainer(port_to_expose=29093)
+    kafka_container: KafkaContainer = KafkaContainer(port_to_expose=29095)
     # kafka_container: DockerContainer = DockerContainer("confluentinc/cp-zookeeper:latest") \
         # .with_bind_ports(909)
     
@@ -25,32 +25,46 @@ def test_integration():
         'queue.buffering.max.ms': 500,
         'batch.num.messages': 50,
     })
-    consumer: Consumer = Consumer({
-        'bootstrap.servers': bootstrap_servers,
-        # 'max.poll.interval.ms': 60000,
-        'enable.auto.commit': True,
-        'group.id': 'my-group',
-        'auto.offset.reset': 'earliest'
-    })
-    
+    def foo_consumer():
+        consumer: Consumer = Consumer({
+            'bootstrap.servers': bootstrap_servers,
+            # 'max.poll.interval.ms': 60000,
+            'enable.auto.commit': True,
+            'group.id': 'my-group',
+            'auto.offset.reset': 'earliest',
+            'queued.min.messages': 1,
+            "partition.assignment.strategy": "roundrobin",
+            "debug": "all"
+        })
+        return consumer
+    consumer = foo_consumer()
+    consumer2 = foo_consumer()
     def reset_offset_beginning(topic_consumer, partitions):
         for p in partitions:
             p.offset = OFFSET_BEGINNING
         topic_consumer.assign(partitions)
 
+    consumer.subscribe(['user-pending'])
+    consumer2.subscribe(['user-pending'])
 
-    consumer.subscribe(['user-pending'], on_assign=reset_offset_beginning)
-    userpending = userpending_pb2.UserPending()
-    userpending.reqId = str(uuid.uuid4())
-    producer.produce(topic='user-pending', value=userpending.SerializeToString())
-    producer.poll(0)
+    def foo_userpending():
+        userpending = userpending_pb2.UserPending()
+        userpending.reqId = str(uuid.uuid4())
+        userpending.userId = str(uuid.uuid4())
+        return userpending
+
+    producer.produce(topic='user-pending', value=foo_userpending().SerializeToString())
+    producer.produce(topic='user-pending', value=foo_userpending().SerializeToString())
+    producer.poll(1)
     producer.flush()
+
     import time
-    time.sleep(30)
-    msg = consumer.poll(1.0)
+    msg = consumer.poll(1000)
+    msg2 = consumer2.poll(1000)
     print(msg.value())
-    
-    u = userpending_pb2.UserPending.FromString(msg.value())
+    print(msg2.value())
+
+    # u = userpending_pb2.UserPending.FromString(msg.value())
     
 if __name__ == "__main__":
     test_integration()
