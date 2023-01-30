@@ -3,17 +3,15 @@ package limdongjin.stomasr;
 import com.google.protobuf.InvalidProtocolBufferException;
 import limdongjin.stomasr.dto.UserMessage;
 import limdongjin.stomasr.kafka.KafkaConstants;
-import limdongjin.stomasr.kafka.SuccListener;
+import limdongjin.stomasr.kafka.VerifSuccListener;
 import limdongjin.stomasr.protos.InferProto;
 import limdongjin.stomasr.service.JoinService;
 import limdongjin.stomasr.service.SuccService;
 import limdongjin.stomasr.stomp.JoinSubReceiver;
-import limdongjin.stomasr.stomp.MessageDestinationPrefixConstants;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -24,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
-import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
@@ -43,8 +40,6 @@ import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-//import org.testcontainers.shaded.com.fasterxml.jackson.databind.ser.std.ByteArraySerializer;
-//import org.testcontainers.shaded.com.fasterxml.jackson.databind.ser.std.StringSerializer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.lang.reflect.Type;
@@ -73,10 +68,6 @@ public class SuccIntegrationTest {
         registry.add("spring.kafka.bootstrap-servers", kafkaContainer::getBootstrapServers);
         registry.add("limdongjin.stomasr.kafka.bootstrapservers", kafkaContainer::getBootstrapServers);
     }
-//    @Autowired
-//    SuccListener succListener;
-//    @Autowired
-//    private AuthRepository authRepository;
     @Autowired
     @SpyBean
     private SimpMessageSendingOperations sendingOperations;
@@ -91,7 +82,7 @@ public class SuccIntegrationTest {
 
     @Autowired
     @SpyBean
-    private SuccListener succListener;
+    private VerifSuccListener verifSuccListener;
 
     @Autowired
     private JoinSubReceiver joinSubReceiver;
@@ -107,10 +98,6 @@ public class SuccIntegrationTest {
         senderOptions.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
 
         this.kafkaTemplate = new KafkaTemplate<String, byte[]>(new DefaultKafkaProducerFactory<String, byte[]>(senderOptions));
-
-//        this.sendingOperations = Mockito.spy(sendingOperations);
-//        this.succService = Mockito.spy(new SuccService(sendingOperations));
-//        this.succListener = new SuccListener(succService);
     }
 
     @Test
@@ -122,20 +109,18 @@ public class SuccIntegrationTest {
         byte[] payload = InferProto.Infer.newBuilder().setUserId(uuid2).setReqId(uuid).setInferResult(OK_MSG).build().toByteArray();
 
         Thread.sleep(10000);
-        kafkaTemplate.send(KafkaConstants.TOPIC_INFER, payload);
+        kafkaTemplate.send(KafkaConstants.TOPIC_INFER_VERIFICATION, payload);
         Thread.sleep(10000);
 
-        Mockito.verify(succService, Mockito.atLeast(1)).onInfer(Mockito.any());
+        Mockito.verify(succService, Mockito.atLeast(1)).onInferVerif(Mockito.any());
         Mockito.verify(sendingOperations, Mockito.atLeast(1)).convertAndSendToUser(Mockito.anyString() ,Mockito.anyString(), Mockito.anyString());
-//        Assertions.assertTrue(authRepository.containsKey(uuid));
-//        Assertions.assertEquals(1, authRepository.size());
     }
 
     @Test
     void handleInvalidKafkaMessage() throws InterruptedException {
         var invalidUuid = "9-1234-5678";
         Thread.sleep(10000);
-        kafkaTemplate.send(KafkaConstants.TOPIC_INFER, InferProto.Infer.newBuilder()
+        kafkaTemplate.send(KafkaConstants.TOPIC_INFER_VERIFICATION, InferProto.Infer.newBuilder()
                 .setUserId(invalidUuid)
                 .setReqId(invalidUuid)
                 .setInferResult("OK")
@@ -145,7 +130,6 @@ public class SuccIntegrationTest {
         Thread.sleep(10000);
 
         Mockito.verify(sendingOperations, Mockito.never()).convertAndSend(Mockito.anyString());
-//        Assertions.assertEquals(0, authRepository.size());
     }
 
     @Test
@@ -169,31 +153,18 @@ public class SuccIntegrationTest {
                 .connect(url,new WebSocketHttpHeaders(), stompHeaders , new MyStompSessionHandlerAdapter())
                 .get(5, TimeUnit.SECONDS);
 
-//        var destination = MessageDestinationPrefixConstants.SUCC + reqId;
-
-        var destination = "/topic/succ";
+        var destination = "/user/topic/succ";
 
         var header = new StompHeaders();
-        header.setDestination("/user/topic/succ");
+        header.setDestination(destination);
         StompSession.Subscription subscribe = stompSession.subscribe(header, new MyStompFrameHandler());
-//        stompSession.send("/app/join", new UserMessage(reqId, "hello world!"));
         Thread.sleep(5000);
-
-        // if client send msg to '/app/join', then joinSubReceiver receive msg and invoke JoinService
-//        Mockito.verify(joinServiceSpy, Mockito.atLeast(1)).join(Mockito.anyString());
-
-//        StompFrameHandler stompFrameHandler = new MyStompFrameHandler();
-//        StompSession.Subscription subscription = stompSession.subscribe(destination, stompFrameHandler);
 
         Thread.sleep(5000);
 
-//        System.out.println(subscription);
-//
-        kafkaTemplate.send(KafkaConstants.TOPIC_INFER, InferProto.Infer.newBuilder().setUserId(userId).setReqId(reqId).setInferResult(OK_MSG).build().toByteArray());
+        kafkaTemplate.send(KafkaConstants.TOPIC_INFER_VERIFICATION, InferProto.Infer.newBuilder().setUserId(userId).setReqId(reqId).setInferResult(OK_MSG).build().toByteArray());
         Thread.sleep(100000);
-
-        // if receive msg from 'infer', then handle and invoke convertAndSend
-//        Mockito.verify(sendingOperations, Mockito.atLeast(1)).convertAndSend(Mockito.eq(destination), Mockito.anyString());
+        // if client send msg to '/app/join', then joinSubReceiver receive msg and invoke JoinService
     }
     private class MyStompFrameHandler implements StompFrameHandler {
         @Override
@@ -256,10 +227,3 @@ public class SuccIntegrationTest {
     }
 
 }
-
-//@TestPropertySource (properties = {
-//        "ALLOWORIGIN=http://localhost:9092",
-//        "BOOTSTRAPSERVERS=http://localhost:9092",
-//        "SASLJAASCONFIG=foo",
-//        "MYPORT=8088"
-//})

@@ -17,13 +17,13 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class SuccListenerTest {
-    private SuccListener listener;
+    private VerifSuccListener listener;
     private SuccService succService;
 
     @BeforeEach
     public void setUp() {
         this.succService = Mockito.mock(SuccService.class);
-        this.listener = new SuccListener(this.succService);
+        this.listener = new VerifSuccListener(this.succService);
     }
 
     @Test
@@ -47,7 +47,7 @@ class SuccListenerTest {
         listener.onInfer(1L, payload2);
 
         // then
-        verify(succService, times(1)).onInfer(payload1);
-        verify(succService, times(1)).onInfer(payload2);
+        verify(succService, times(1)).onInferVerif(payload1);
+        verify(succService, times(1)).onInferVerif(payload2);
     }
 }

@@ -18,7 +18,6 @@ import java.security.Principal;
 public class JoinSubReceiver {
     private final static Logger logger = LoggerFactory.getLogger(JoinSubReceiver.class);
 
-
     private JoinService joinService;
 
     public JoinSubReceiver(JoinService joinService){

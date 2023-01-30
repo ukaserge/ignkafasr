@@ -5,33 +5,32 @@ import limdongjin.stomasr.service.SuccService;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
-import org.springframework.lang.NonNull;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
-import limdongjin.stomasr.kafka.KafkaConstants;
+
 import java.util.logging.Logger;
-import limdongjin.stomasr.protos.InferProto;
 
 @Component
 @KafkaListener(
-    topics = { KafkaConstants.TOPIC_INFER },
-    concurrency = "1",
-    groupId = KafkaConstants.GROUP_ID_MY_GROUP
+        topics = { KafkaConstants.TOPIC_INFER_TRANSCRIPTION },
+        concurrency = "1",
+        groupId = KafkaConstants.GROUP_ID_II_GROUP
 )
-public class SuccListener {
-    private static final Logger logger = Logger.getLogger("succListener");
+public class TranscribeSuccListener {
+    private static final Logger logger = Logger.getLogger("TranscribeSuccListener");
 
-    private SuccService succService;
+    private final SuccService succService;
 
-    public SuccListener(SuccService succService) {
+    public TranscribeSuccListener(SuccService succService) {
         this.succService = succService;
     }
 
+    // TODO refactoring duplicated logic
     @KafkaHandler
     public void onInfer(
-        @Header(KafkaHeaders.OFFSET) Long offset,
-        @Payload byte[] payload
+            @Header(KafkaHeaders.OFFSET) Long offset,
+            @Payload byte[] payload
     ) throws IllegalArgumentException, InvalidProtocolBufferException {
         if(payload == null){
             throw new IllegalArgumentException("receive null payload");
@@ -42,7 +41,7 @@ public class SuccListener {
         logger.info(String.format("onInfer %s && offset is %d", new String(payload), offset));
 
         try {
-            succService.onInfer(payload);
+            succService.onInferTranscribe(payload);
         }catch (Exception e){
             e.printStackTrace();
             throw e;

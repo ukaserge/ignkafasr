@@ -7,9 +7,9 @@ limdongjin:
       origin: localhost:8080
     kafka:
       bootstrapservers: localhost:29092
-      sasljaasconfig: fakeconfig
+      sasljaasconfig: unused
       security-protocol: PLAINTEXT
-      sasl-mechanism: foo
+      sasl-mechanism: unused
 spring:
   kafka:
     consumer:

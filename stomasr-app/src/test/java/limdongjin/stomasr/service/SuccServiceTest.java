@@ -2,7 +2,6 @@ package limdongjin.stomasr.service;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 import limdongjin.stomasr.protos.InferProto;
-import limdongjin.stomasr.stomp.MessageDestinationPrefixConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,11 +33,9 @@ class SuccServiceTest {
         byte[] payload3 = InferProto.Infer.newBuilder().setReqId(UUID.randomUUID().toString()).setInferResult("").build().toByteArray();
         byte[] payload4 = InferProto.Infer.newBuilder().setReqId("12345-12345-3432-222").setInferResult(OK_MSG).build().toByteArray();
 
-        assertThrows(InvalidProtocolBufferException.class, () -> succService.onInfer(payload2));
-        assertThrows(IllegalArgumentException.class, () -> succService.onInfer(payload3));
-        assertThrows(IllegalArgumentException.class, () -> succService.onInfer(payload4));
-
-//        assertEquals(0, authRepository.size());
+        assertThrows(InvalidProtocolBufferException.class, () -> succService.onInferVerif(payload2));
+        assertThrows(IllegalArgumentException.class, () -> succService.onInferVerif(payload3));
+        assertThrows(IllegalArgumentException.class, () -> succService.onInferVerif(payload4));
     }
 
     @Test
@@ -48,21 +45,8 @@ class SuccServiceTest {
         byte[] payload = InferProto.Infer.newBuilder().setUserId(userId).setReqId(reqId).setInferResult(OK_MSG).build().toByteArray();
         // eg, "471ac3dc-99d6-4b02-930e-3cf4ef24c0cf,OK;"
 
-        succService.onInfer(payload);
+        succService.onInferVerif(payload);
 
         Mockito.verify(messageSendingOperations, Mockito.times(1)).convertAndSendToUser(Mockito.eq(userId), Mockito.anyString(), Mockito.anyString());
-//        Mockito.verify(authRepository, Mockito.times(1)).putIfAbsent(Mockito.eq(reqId), Mockito.anyString());
     }
-
-//    @Test
-//    void whenOnInferThenInsertReqIdIntoAuthRepository() throws InvalidProtocolBufferException {
-//        String reqId = UUID.randomUUID().toString();
-//        byte[] payload = InferProto.Infer.newBuilder().setReqId(reqId).setInferResult(OK_MSG).build().toByteArray();
-//
-////        assertFalse(authRepository.containsKey(reqId));
-//
-//        succService.onInfer(payload);
-//
-////        assertTrue(authRepository.containsKey(reqId));
-//    }
 }
