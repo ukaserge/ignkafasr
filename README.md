@@ -156,9 +156,9 @@ kubectl create -f spbrain/spbrain-deployment.yaml
 kubectl create -f spbrain/spbrain-t-deployment.yaml
 ```
 
-**build ignkafasr-web**
+**build ignkafasr-front**
 ```bash
-cd ignkafasr-web
+cd ignkafasr-front
 yarn build && gcloud app deploy
 ```
 
