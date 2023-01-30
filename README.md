@@ -4,24 +4,25 @@
 
 In-memory Speaker Verification and Speech Recognition Project 
 
-using apache ignite, apache kafka, pyannote, speechbrain, whisper, stomp, spring webflux, kubernetes(k8s)
+using apache ignite, apache kafka, speechbrain, whisper, stomp, spring webflux, kubernetes(k8s)
 
 ## Demo 
 
 - (closed) [https://kafasr.limdongjin.com](https://kafasr.limdongjin.com)
 - [demo video (ver1) ](https://vimeo.com/manage/videos/785495352)
 - [demo video (ver2)](https://www.youtube.com/watch?v=VZdIU6MMds4)
+- [demo video (ver3)](https://www.youtube.com/watch?v=eE-AVDOvirI&feature=youtu.be)
 
 ## How to build?
 
-Development: either **docker-compose** or **minikube**
-Production: **google kubernetes engine** or other cloud service
+- Development: either **docker-compose** or **minikube**
+- Production: **google kubernetes engine** or other
 
 ### Docker-compose (for Dev)
 
 To complete this, you'll need the following:
-- Docker.
-- Docker-compose (version3)
+- Docker
+- Docker-compose v3
 
 ```bash
 git clone https://github.com/limdongjin/ignkafasr
@@ -38,10 +39,13 @@ cd $TMPP_HOME/spbrain-app
 docker build -t limdongjin/spbrain .
 
 cd $TMPP_HOME/dev
-docker compose up
+docker compose up -d
 
-cd ignkafasr-web
+cd $TMPP_HOME/ignkafasr-web
 yarn dev
+
+# speaker verification url: localhost:3000/main 
+# speaker registration url: localhost:3000/upload
 ```
 
 ### Google Kubernetes Engine (for Prod)
@@ -92,6 +96,8 @@ kubectl create secret generic ignasr -n limdongjin --from-literal=sasl.jaas.conf
 kubectl create secret generic stomasr -n limdongjin --from-literal=sasl.jaas.config="$(kubectl get secret stomasr -n kafka-cluster -o jsonpath="{.data.sasl\.jaas\.config}" | base64 -d)"
 
 kubectl create secret generic spbrain -n limdongjin --from-literal=password="$(kubectl get secret spbrain -n kafka-cluster -o jsonpath="{.data.password}" | base64 -d)"
+
+kubectl create secret generic spbrain-t -n limdongjin --from-literal=password="$(kubectl get secret spbrain-t -n kafka-cluster -o jsonpath="{.data.password}" | base64 -d)"
 ```
 
 **create static ip and managed-certificate (GKE)**
@@ -137,14 +143,17 @@ kubectl create -f stomasr/stomasr-deployment.yaml
 TMPP_HOME=$(pwd)
 cd $TMPP_HOME/spbrain-app
 
-docker build -t gcr.io/limdongjin-kube/spbrain -f Dockerfile.prod .
+docker build -t gcr.io/limdongjin-kube/spbrain .
+docker build -t gcr.io/limdongjin-kube/spbrain-t -f Dockerfile.transcribe .
 docker push gcr.io/limdongjin-kube/spbrain
+docker push gcr.io/limdongjin-kube/spbrain-t
 cd $TMPP_HOME
 
 kubectl create -f spbrain/spbrain-sa.yaml
 kubectl apply -f spbrain/spbrain-cluster-role.yaml
 kubectl create -f spbrain/spbrain-service.yaml
 kubectl create -f spbrain/spbrain-deployment.yaml
+kubectl create -f spbrain/spbrain-t-deployment.yaml
 ```
 
 **build ignkafasr-web**
