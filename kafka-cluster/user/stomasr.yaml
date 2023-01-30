@@ -24,14 +24,25 @@ spec:
         host: "*"
       - resource:
           type: group
-          name: my-group
+          name: ii-group
           patternType: literal
         operations:
           - Read
         host: "*"
       - resource:
           type: topic
-          name: infer
+          name: infer.verification
+          patternType: literal
+        operations:
+          - Read
+          - Describe
+          - Write
+          - Create
+          - AlterConfigs
+        host: "*"
+      - resource:
+          type: topic
+          name: infer.transcription
           patternType: literal
         operations:
           - Read

@@ -27,7 +27,7 @@ spec:
         - name: CONFIG_URI
           value: file:///ignite/config/node-configuration.xml
         - name: JVM_OPTS
-          value: "-Xms1024m -Xmx1024m -XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+ScavengeBeforeFullGC -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC"
+          value: "-XX:+AlwaysPreTouch -XX:+UseParNewGC -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:+ScavengeBeforeFullGC -XX:+CMSScavengeBeforeRemark -XX:+DisableExplicitGC"
         #- name: QUIET
         #  value: "false"
         ports:
@@ -42,11 +42,11 @@ spec:
           name: config-vol
         resources:
           limits:
-            cpu: 1
-            memory: 2Gi
+            cpu: "100m"
+            memory: 3Gi
           requests:
-            cpu: 2
-            memory: 4Gi
+            cpu: "10m"
+            memory: 1Gi
       volumes:
       - name: config-vol
         configMap:

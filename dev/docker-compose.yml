@@ -1,25 +1,8 @@
 version: '3'
 
-volumes:
-  zookeeper-data:
-    driver: local
-  zookeeper-log:
-    driver: local
-  kafka-data:
-    driver: local
 services:
   ignite:
     image: apacheignite/ignite:2.14.0
-    blkio_config:
-      weight: 700
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2048M
-        reservations:
-          cpus: '0.3'
-          memory: 600M
     environment:
       - JVM_OPTS=-Xms512m -Xmx512m -XX:+AggressiveOpts -XX:+UseG1GC -XX:MaxPermSize=256m -XX:+DisableExplicitGC -DIGNITE_PERFORMANCE_SUGGESTIONS_DISABLED=true
     networks:
@@ -27,8 +10,8 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     volumes:
-      - zookeeper-data:/var/lib/zookeeper/data:Z
-      - zookeeper-log:/var/lib/zookeeper/log:Z
+      - ./zookeeper_data:/var/lib/zookeeper/data
+      - ./zookeeper_log:/var/lib/zookeeper/log
     environment:
       ZOOKEEPER_CLIENT_PORT: '2181'
       ZOOKEEPER_TICK_TIME: '2000'
@@ -46,18 +29,16 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
       KAFKA_JMX_PORT: "9091"
-      NUM_PARTITIONS: "12"
+      # NUM_PARTITIONS: "12"
       KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes: 
-      - kafka-data:/var/lib/kafka/data:Z
+      - ./kafka_data:/var/lib/kafka/data
     networks:
       - mybridge-network
   akhq:
     image: tchiotludo/akhq
     restart: always
-    blkio_config:
-      weight: 200
     environment:
       AKHQ_CONFIGURATION: |
         akhq:
@@ -76,22 +57,36 @@ services:
       BOOTSTRAPSERVERS: kafka:9092
       IGNITE_SERVICE_NAME: ignite
       IGNITE_PORT: 10800
-    deploy:
-      resources:
-        reservations:
-          cpus: '0.4'
-          memory: 300M
-    blkio_config:
-      weight: 700
+      CONSUMER_ASSIGN_STRATEGY: "range,roundrobin"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
     volumes:
-      - /root
+      - ./spbrain1_data2:/app/saved
+    networks:
+      - mybridge-network
+  spbrain-t:
+    image: limdongjin/spbrain-t
+    restart: always
+    environment:
+      BOOTSTRAPSERVERS: kafka:9092
+      IGNITE_SERVICE_NAME: ignite
+      IGNITE_PORT: 10800
+      CONSUMER_ASSIGN_STRATEGY: "range,roundrobin"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    volumes:
+      - ./spbrain2_data2:/app/saved
     networks:
       - mybridge-network
   ignasr:
     image: limdongjin/ignasr
     restart: always
-    blkio_config:
-      weight: 400
     ports:
       - 8088:8088
     environment:
@@ -110,18 +105,8 @@ services:
   stomasr:
     image: limdongjin/stomasr
     restart: always
-    blkio_config:
-      weight: 400
     ports:
       - 8089:8089
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 1024M
-        reservations:
-          cpus: '0.4'
-          memory: 300M
     environment:
       MYPORT: 8089
       ALLOWORIGIN: "*" #localhost:3000

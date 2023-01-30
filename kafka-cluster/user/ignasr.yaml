@@ -24,7 +24,7 @@ spec:
         host: "*"
       - resource:
           type: group
-          name: my-group
+          name: uu-group
           patternType: literal
         operations:
           - Read

@@ -22,11 +22,11 @@ spec:
           name: stomasr
           resources:
             requests:
-              cpu: 1
-              memory: 4Gi
+              cpu: "50m"
+              memory: 300Mi
             limits:
-              cpu: 2
-              memory: 8Gi
+              cpu: "200m"
+              memory: 1Gi
           ports:
             - containerPort: 8080
           env:

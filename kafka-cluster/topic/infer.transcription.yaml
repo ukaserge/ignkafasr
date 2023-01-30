@@ -1,13 +1,13 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: user-pending 
+  name: infer.transcription
   namespace: kafka-cluster
   labels:
     strimzi.io/cluster: my-cluster
 spec:
-  partitions: 3
+  partitions: 10
   replicas: 2
   config:
-    retention.ms: 180000
+    retention.ms: 7200000
     segment.bytes: 1073741824
