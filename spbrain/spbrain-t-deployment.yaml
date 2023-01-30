@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   labels:
     app: spbrain
-  name: spbrain
+  name: spbrain-t
   namespace: limdongjin
 spec:
   replicas: 3
@@ -18,8 +18,8 @@ spec:
     spec:
       serviceAccountName: spbrain
       containers:
-        - image: gcr.io/limdongjin-kube/spbrain
-          name: spbrain
+        - image: gcr.io/limdongjin-kube/spbrain-t
+          name: spbrain-t
           resources:
             requests:
               cpu: 2
@@ -27,17 +27,17 @@ spec:
               ephemeral-storage: "2Gi"
             limits:
               cpu: 4
-              memory: 6Gi
+              memory: 5Gi
               ephemeral-storage: "7Gi"
           env:
             - name: BOOTSTRAPSERVERS
               value: "my-cluster-kafka-bootstrap.kafka-cluster:9092"
             - name: KAFKA_USER_NAME
-              value: "spbrain"
+              value: "spbrain-t"
             - name: KAFKA_USER_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: spbrain
+                  name: spbrain-t
                   key: password
             - name: IGNITE_SERVICE_NAME
               value: "ignite-service"
