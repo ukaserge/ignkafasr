@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.function.Function;
 
 import static org.springframework.web.reactive.function.server.ServerResponse.ok;
+import java.util.Random;
 
 @Component
 public class SpeechUploadHandler {
@@ -68,7 +69,7 @@ public class SpeechUploadHandler {
                                         .build()
                                         .toByteArray();
 
-                                return reactiveKafkaProducerTemplate.send("user-pending", reqIdBytes).thenReturn(tuple3);
+                                return reactiveKafkaProducerTemplate.send("user-pending", new Random().nextInt(10), null, reqIdBytes).thenReturn(tuple3);
                             })
                             .flatMap(tuple3 -> toSuccessResponseDtoMono(tuple3.getT1(), "success upload; userId = ", tuple3.getT3().toString()));
                 })

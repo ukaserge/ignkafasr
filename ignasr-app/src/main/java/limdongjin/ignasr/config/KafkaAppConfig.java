@@ -53,13 +53,13 @@ public class KafkaAppConfig {
         return new KafkaAdmin(configs);
     }
 
-    @Bean
-    public NewTopic userPendingTopic() {
-        return TopicBuilder.name("user-pending")
-                .partitions(3)
-                .compact()
-                .build();
-    }
+   //  @Bean
+   // public NewTopic userPendingTopic() {
+   //     return TopicBuilder.name("user-pending")
+   //             .partitions(3)
+   //             .compact()
+   //             .build();
+   // }
     
 
     public SenderOptions<String, byte[]> buildSenderOptions(){

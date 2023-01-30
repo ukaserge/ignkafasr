@@ -25,8 +25,8 @@ import java.util.UUID;
 @Configuration
 public class IgniteCacheConfig {
     public static final String cacheName = "uploadCache";
-    public static final CacheMode cacheMode = CacheMode.REPLICATED;
-    public static final CacheWriteSynchronizationMode cacheWriteSyncMode = CacheWriteSynchronizationMode.FULL_ASYNC;
+    public static final CacheMode cacheMode = CacheMode.PARTITIONED;
+    public static final CacheWriteSynchronizationMode cacheWriteSyncMode = CacheWriteSynchronizationMode.PRIMARY_SYNC;
     public static final CacheAtomicityMode cacheAtomicityMode = CacheAtomicityMode.ATOMIC;
 
     @Value("${limdongjin.ignasr.ignite.namespace}")
@@ -56,7 +56,7 @@ public class IgniteCacheConfig {
             return clientCfg;
         }
         clientCfg.setAddresses(addresses);
-//        clientCfg.setTcpNoDelay(false);
+        clientCfg.setTcpNoDelay(false);
         clientCfg.setPartitionAwarenessEnabled(true);
         clientCfg.setSendBufferSize(15*1024*1024);
         clientCfg.setReceiveBufferSize(15*1024*1024);
