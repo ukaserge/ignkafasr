@@ -22,6 +22,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import reactor.core.publisher.Mono;
+import reactor.kafka.sender.SenderRecord;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -60,7 +61,7 @@ class SpeechUploadHandlerTest {
         // Stubbing
         String cacheName = "uploadCache";
 
-        Mockito.when(reactiveKafkaProducerTemplate.send(Mockito.anyString(), Mockito.anyInt(), Mockito.any(), Mockito.any(byte[].class)))
+        Mockito.when(reactiveKafkaProducerTemplate.send(Mockito.any(SenderRecord.class)))
                 .thenReturn(Mono.just(MyTestUtil.emptySenderResultVoid()));
 
         // Prepare ServerRequest
@@ -77,8 +78,7 @@ class SpeechUploadHandlerTest {
             new String(igniteRepository.<UUID, byte[]>get(cacheName, UUID.fromString(reqId)))
         );
         Mockito.verify(reactiveKafkaProducerTemplate, Mockito.times(1))
-                .send(Mockito.anyString(), Mockito.anyInt(), Mockito.any(), Mockito.any(byte[].class));
-
+                .send(Mockito.any(SenderRecord.class));
     }
 
     @Test
@@ -124,7 +124,7 @@ class SpeechUploadHandlerTest {
         String uploadCache = "uploadCache";
         String reqId2userId = "reqId2userId";
 
-        Mockito.when(reactiveKafkaProducerTemplate.send(Mockito.anyString(), Mockito.anyInt(), Mockito.any(), Mockito.any(byte[].class)))
+        Mockito.when(reactiveKafkaProducerTemplate.send(Mockito.any(SenderRecord.class)))
                 .thenReturn(Mono.just(MyTestUtil.emptySenderResultVoid()));
 
         // Prepare MultipartBody
@@ -156,7 +156,7 @@ class SpeechUploadHandlerTest {
 
         // must send event to kafka topic
         Mockito.verify(reactiveKafkaProducerTemplate, Mockito.times(1))
-                .send(Mockito.eq("user-pending"), Mockito.anyInt(), Mockito.any(), Mockito.any(byte[].class));
+                .send(Mockito.any(SenderRecord.class));
 
         // must store blob to ignite
         Assertions.assertEquals(1, igniteRepository.size(uploadCache));

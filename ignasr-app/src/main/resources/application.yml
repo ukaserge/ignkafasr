@@ -5,6 +5,7 @@ logging:
   level:
     org.springframework.*: DEBUG
     io.netty.*: DEBUG
+    limdongjin.ignasr.*: DEBUG
 
 limdongjin:
   ignasr:

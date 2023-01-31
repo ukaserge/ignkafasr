@@ -14,6 +14,7 @@ import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.client.WebsocketClientSpec;
 import reactor.netty.internal.shaded.reactor.pool.AllocationStrategy;
 import reactor.netty.resources.ConnectionProvider;
 
@@ -44,31 +45,30 @@ public class WebfluxConfig implements WebFluxConfigurer {
             ;
         }
     }
-//    @Bean
-//    public ReactorResourceFactory resourceFactory() {
-//        ReactorResourceFactory factory = new ReactorResourceFactory();
-//        factory.setUseGlobalResources(false);
-//        factory.;
-//        return factory;
-//    }
-//
-//    @Bean
-//    public WebClient webClient() {
-//        ReactorClientHttpConnector reactorClientHttpConnector = new ReactorClientHttpConnector(resourceFactory(), Function.identity());
-//
-//        HttpClient httpClient = HttpClient.create(ConnectionProvider
-//                .builder("myConnectionProvider")
-//                .maxConnections(1000)
-//                .pendingAcquireTimeout(Duration.ofSeconds(5))
-//                .maxIdleTime(Duration.ofSeconds(27))
-//                .maxLifeTime(Duration.ofSeconds(27))
-//                .build()).option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 27000)
-//                .responseTimeout(Duration.ofSeconds(27))
-//        ;
-//
-//        return WebClient.builder()
-//                .clientConnector(new ReactorClientHttpConnector(httpClient))
-//                .build()
-//        ;
-//    }
+    @Bean
+    public ReactorResourceFactory resourceFactory() {
+        ReactorResourceFactory factory = new ReactorResourceFactory();
+        factory.setUseGlobalResources(false);
+        return factory;
+    }
+
+    @Bean
+    public WebClient webClient() {
+        HttpClient httpClient = HttpClient.create(ConnectionProvider
+                .builder("myConnectionProvider")
+                .maxConnections(8)
+                .pendingAcquireTimeout(Duration.ofSeconds(5))
+                .maxIdleTime(Duration.ofSeconds(20))
+                .maxLifeTime(Duration.ofSeconds(20))
+                .lifo()
+                .build()).option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 27000)
+                .responseTimeout(Duration.ofSeconds(20))
+
+        ;
+
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .build()
+        ;
+    }
 }

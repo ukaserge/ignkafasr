@@ -36,6 +36,7 @@ public class MultiPartUtil {
                 .onErrorMap(NoSuchElementException.class, MultiPartUtil::missingRequiredFields)
                 .onErrorMap(DataBufferLimitException.class, MultiPartUtil::exceedBufferSizeLimit)
                 .flatMap(MultiPartUtil::toBytesMono)
+                .subscribeOn(Schedulers.parallel())
 //                .publishOn(Schedulers.boundedElastic())
         ;
     }
@@ -51,6 +52,7 @@ public class MultiPartUtil {
                     DataBufferUtils.release(dataBuffer);
                     return bytes;
                 })
+                .subscribeOn(Schedulers.parallel())
         ;
     }
 
