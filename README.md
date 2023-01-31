@@ -11,7 +11,8 @@ using apache ignite, apache kafka, speechbrain, whisper, stomp, spring webflux, 
 - (closed) [https://kafasr.limdongjin.com](https://kafasr.limdongjin.com)
 - [demo video (ver1) ](https://vimeo.com/manage/videos/785495352)
 - [demo video (ver2)](https://www.youtube.com/watch?v=VZdIU6MMds4)
-- [demo video (ver3)](https://www.youtube.com/watch?v=eE-AVDOvirI&feature=youtu.be)
+- [demo video1 (ver3)](https://www.youtube.com/watch?v=eE-AVDOvirI&feature=youtu.be)
+- [demo video2 (ver3)](https://www.youtube.com/watch?v=KfEcL1IQJ4w)
 
 ## How to build?
 
