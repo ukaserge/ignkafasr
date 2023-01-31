@@ -24,4 +24,4 @@ COPY --from=builder /app/.venv ./.venv
 RUN apt update && apt install ffmpeg -y
 COPY asrspeech ./asrspeech
 
-CMD ["/app/.venv/bin/python3.9", "-m", "asrspeech.entry", "verify"]
+ENTRYPOINT ["/app/.venv/bin/python3.9", "-m", "asrspeech.entry", "verify"]
