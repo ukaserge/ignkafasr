@@ -53,27 +53,20 @@ public class KafkaAppConfig {
         return new KafkaAdmin(configs);
     }
 
-   //  @Bean
-   // public NewTopic userPendingTopic() {
-   //     return TopicBuilder.name("user-pending")
-   //             .partitions(3)
-   //             .compact()
-   //             .build();
-   // }
-    
-
     public SenderOptions<String, byte[]> buildSenderOptions(){
         Map<String, Object> producerProps = new HashMap<>();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
+        producerProps.put(ProducerConfig.RETRIES_CONFIG, 30);
+        // producerProps.put(ProducerConfig.ACKS_CONFIG, "0");
+        producerProps.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 30000);
 
         if(securityProtocol.equals("SASL_PLAINTEXT")) {
             producerProps.put("security.protocol", "SASL_PLAINTEXT");
             producerProps.put("sasl.mechanism", "SCRAM-SHA-512");
             producerProps.put("sasl.jaas.config", saslJaasConfig);
         }
-
         return SenderOptions.<String, byte[]>create(producerProps)
                 .withKeySerializer(new StringSerializer())
                 .withValueSerializer(new ByteArraySerializer())

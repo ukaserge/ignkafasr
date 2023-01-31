@@ -6,13 +6,19 @@ import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import limdongjin.ignasr.MyTestUtil;
 import limdongjin.ignasr.router.SpeechRouter;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -63,8 +69,13 @@ public class SpeechUploadHandlerIntegrationTest {
     @Autowired
     private SpeechUploadHandler speechUploadHandler;
 
+    @Autowired
+    private KafkaAdmin kafkaAdmin;
+
     @Test
     void is200OK(){
+        kafkaAdmin.createOrModifyTopics(TopicBuilder.name("user-pending").partitions(10).build());
+
         var reqId = UUID.randomUUID().toString();
         var userId = UUID.randomUUID().toString();
         var label = "dong";
@@ -84,12 +95,11 @@ public class SpeechUploadHandlerIntegrationTest {
                 .expectStatus().is2xxSuccessful()
                 .returnResult(String.class);
 
-        String responseBody = ret1.getResponseBody().single().block();
-        Assertions.assertNotNull(responseBody);
-
-        System.out.println(responseBody);
-
-        Assertions.assertTrue(responseBody.contains("success"));
+        ret1.getResponseBody().single()
+                .subscribe(b -> {
+                    System.out.println(b);
+                    Assertions.assertTrue(b.contains("success"));
+                });
 
         FluxExchangeResult<String> ret2 = webTestClient.get()
                 .uri("/")

@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
+import reactor.kafka.sender.SenderResult;
+import reactor.kafka.sender.internals.DefaultKafkaSender;
+import reactor.util.function.Tuple3;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -69,7 +72,9 @@ public class SpeechUploadHandler {
                                         .build()
                                         .toByteArray();
 
-                                return reactiveKafkaProducerTemplate.send("user-pending", new Random().nextInt(10), null, reqIdBytes).thenReturn(tuple3);
+                                return reactiveKafkaProducerTemplate.send("user-pending", new Random().nextInt(10), null, reqIdBytes)
+                                        .flatMap(voidSenderResult -> Mono.just(tuple3))
+                                ;
                             })
                             .flatMap(tuple3 -> toSuccessResponseDtoMono(tuple3.getT1(), "success upload; userId = ", tuple3.getT3().toString()));
                 })
