@@ -6,7 +6,7 @@ metadata:
   name: spbrain-t
   namespace: limdongjin
 spec:
-  replicas: 3
+  replicas: 7
   selector:
     matchLabels:
       app: spbrain
@@ -22,12 +22,12 @@ spec:
           name: spbrain-t
           resources:
             requests:
-              cpu: 2
-              memory: 2Gi
+              cpu: "400m"
+              memory: "350Mi"
               ephemeral-storage: "2Gi"
             limits:
-              cpu: 4
-              memory: 5Gi
+              cpu: "500m"
+              memory: "500Mi"
               ephemeral-storage: "7Gi"
           env:
             - name: BOOTSTRAPSERVERS

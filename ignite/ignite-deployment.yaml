@@ -45,8 +45,8 @@ spec:
             cpu: "100m"
             memory: 3Gi
           requests:
-            cpu: "10m"
-            memory: 1Gi
+            cpu: "50m"
+            memory: 2Gi
       volumes:
       - name: config-vol
         configMap:
