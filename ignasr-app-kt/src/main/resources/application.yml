@@ -1,0 +1,22 @@
+server:
+  port: ${MYPORT}
+
+logging:
+  level:
+    org.springframework.*: DEBUG
+    io.netty.*: DEBUG
+    limdongjin.ignasr.*: DEBUG
+limdongjin:
+  ignasr:
+    cors:
+      origin: ${ALLOWORIGIN}
+    kafka:
+      bootstrapservers: ${BOOTSTRAPSERVERS}
+      sasljaasconfig: ${SASLJAASCONFIG}
+      security-protocol: ${SECURITY_PROTOCOL} # SASL_PLAINTEXT
+      sasl-mechanism: ${SASL_MECHANISM} # SCRAM-SHA-512
+    ignite:
+      mode: ${IGNITEMODE} # kubernetes
+      namespace: ${NAMESPACE}     # limdongjin
+      servicename: ${IGNITESERVICENAME} # ignite-service
+      addresses: ${IGNITEADDRESSES}     # ignite-service:10800
