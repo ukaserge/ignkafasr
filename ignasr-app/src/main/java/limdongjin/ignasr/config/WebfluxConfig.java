@@ -56,11 +56,11 @@ public class WebfluxConfig implements WebFluxConfigurer {
     public WebClient webClient() {
         HttpClient httpClient = HttpClient.create(ConnectionProvider
                 .builder("myConnectionProvider")
-                .maxConnections(8)
+                // .maxConnections(8)
                 .pendingAcquireTimeout(Duration.ofSeconds(5))
                 .maxIdleTime(Duration.ofSeconds(20))
                 .maxLifeTime(Duration.ofSeconds(20))
-                .lifo()
+                // .lifo()
                 .build()).option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 27000)
                 .responseTimeout(Duration.ofSeconds(20))
 
