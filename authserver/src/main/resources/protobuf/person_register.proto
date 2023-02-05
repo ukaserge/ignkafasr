@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+option java_package = "limdongjin.authserver.protos";
+option java_outer_classname = "PersonRegisterProto";
+option java_multiple_files = true;
+
+message PersonRegister {
+    string name = 1;
+    string password = 2;
+    string role = 3;
+}

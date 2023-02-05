@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  postgresql:
+    image: postgres
+    ports: 
+      - 5432:5432
+    environment:
+      POSTGRES_USER: dj
+      POSTGRES_PASSWORD: 1q2w3e4r
+      POSTGRES_DB: djdb
+    
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
