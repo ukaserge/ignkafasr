@@ -38,10 +38,15 @@ dependencies {
 	implementation("org.apache.ignite:ignite-indexing:$igniteVersion")
 	implementation("org.apache.ignite:ignite-kubernetes:$igniteVersion")
 	implementation("com.google.protobuf:protobuf-java:3.20.3")
-
+	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
+	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 //	implementation("io.grpc:grpc-stub:1.15.1")
 //	implementation("io.grpc:grpc-protobuf:1.15.1")
 //	protobuf(files("ext/"))
+
+	testImplementation("org.springframework.security:spring-security-test")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test:$springVersion")
 	testImplementation("io.projectreactor:reactor-test:3.5.1")

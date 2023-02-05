@@ -13,8 +13,6 @@ import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Mono
 import reactor.kafka.sender.SenderRecord
-import reactor.kafka.sender.SenderResult
-import reactor.util.Loggers
 import reactor.util.function.Tuple2
 import reactor.util.function.Tuple4
 import java.util.*
@@ -28,7 +26,12 @@ class SpeechUploadHandler(
     @Value("\${limdongjin.ignasr.cors.origin}")
     val allowedOrigin: String? = null
 
+    fun foo(request: ServerRequest): Mono<ServerResponse>{
+        return ServerResponse.ok().bodyValue("foo")
+    }
+
     fun index(request: ServerRequest?): Mono<ServerResponse> {
+
         return ServerResponse.ok().bodyValue("hello world")
     }
 
@@ -76,7 +79,7 @@ class SpeechUploadHandler(
                             "user-pending",
                             Random().nextInt(10),
                             Time.SYSTEM.milliseconds(),
-                        null,
+                            "hello",
                             userPendingBytes,
                             null
                         )

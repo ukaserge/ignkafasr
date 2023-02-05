@@ -8,6 +8,8 @@ logging:
     limdongjin.ignasr.*: DEBUG
 limdongjin:
   ignasr:
+    security:
+      token: ${TOKEN}
     cors:
       origin: ${ALLOWORIGIN}
     kafka:
