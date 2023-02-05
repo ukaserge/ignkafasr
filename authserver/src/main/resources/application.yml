@@ -1,0 +1,14 @@
+limdongjin:
+  authserver:
+    security:
+      token: ${JWT_PRIVATE_KEY}
+spring:
+  server:
+    port: ${MY_PORT}
+  r2dbc:
+    protocol: r2dbc:postgresql
+    host: ${DB_HOST}
+    port: ${DB_PORT}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    database: ${DB_NAME}
