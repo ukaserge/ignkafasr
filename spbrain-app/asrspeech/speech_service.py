@@ -38,7 +38,8 @@ class SpeechService:
         bo = io.BytesIO(blob)
         try:
             with torch.no_grad(): 
-                waveform, _ = torchaudio.load(bo)
+                waveform, sr = torchaudio.load(bo)
+                assert sr == 16000
         except RuntimeError as e:
             print(e)
             return None

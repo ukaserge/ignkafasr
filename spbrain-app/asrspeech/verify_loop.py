@@ -66,7 +66,7 @@ class VerifyMain:
 
     def load_auth_embeddings(self) -> Optional[Dict[UUID, Tensor]]:
         auth_key_dict: Dict[Any, Any] = self.ignite_repository.scan(AUTH_CACHE, only_key=True)
-        auth_keys: Dict[UUID] = auth_key_dict.keys()
+        auth_keys = auth_key_dict.keys()
         if len(auth_keys) == 0:
             return None
         
@@ -155,7 +155,7 @@ class VerifyMain:
         ]
         # sims = map(lambda key_value: self.speech_service.verify(key_value[0], key_value[1], cand_embedding), auth_embedding_dict.items())
         logging.debug("get infer_result_list ok")
-        
+        logging.debug(infer_result_list)        
         try:
             match_uuid, match_score, prediction = max(infer_result_list, key=lambda infer_result: infer_result[1]) # uuid, score, prediction
             logging.debug("verify predict ok")
