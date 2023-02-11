@@ -1,6 +1,24 @@
 version: '3'
 
 services:
+  cassandra:
+    image: cassandra:3.11
+    env_file:
+      - ./docker-services/cassandra/cassandra.env
+    mem_limit: 1g
+    memswap_limit: 1g
+    mem_swappiness: 0
+    ports:
+      - "7000:7000"
+      - "7001:7001"
+      - "7199:7199"
+      - "9042:9042"
+    volumes:
+      - ./data/cassandra:/var/lib/cassandra
+      - ./docker-services/cassandra/jmxremote.access:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/management/jmxremote.access
+      - ./docker-services/cassandra/jmxremote.password:/etc/cassandra/jmxremote.password
+    networks:
+      - mybridge-network
   ignite:
     image: apacheignite/ignite:2.14.0
     environment:
@@ -82,6 +100,42 @@ services:
         hard: 40000
     volumes:
       - ./spbrain2_data2:/app/saved
+    networks:
+      - mybridge-network
+  scrap-app:
+    image: limdongjin/scrap-app
+    restart: always
+    environment:
+      BOOTSTRAPSERVERS: kafka:9092
+      IGNITE_SERVICE_NAME: ignite
+      IGNITE_PORT: 10800
+      CONSUMER_ASSIGN_STRATEGY: "range,roundrobin"
+      CASS_HOST: cassandra
+      CASS_USER_NAME: admin
+      CASS_USER_PASSWORD: admin
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    networks:
+      - mybridge-network
+  sid-app:
+    image: limdongjin/speaker-recognition-app
+    restart: always
+    environment:
+      BOOTSTRAPSERVERS: kafka:9092
+      IGNITE_SERVICE_NAME: ignite
+      IGNITE_PORT: 10800
+      CONSUMER_ASSIGN_STRATEGY: "range,roundrobin"
+      CASS_HOST: cassandra
+      CASS_USER_NAME: admin
+      CASS_USER_PASSWORD: admin
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
     networks:
       - mybridge-network
   ignasr:
