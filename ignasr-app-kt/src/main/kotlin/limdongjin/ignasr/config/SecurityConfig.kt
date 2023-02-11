@@ -70,6 +70,8 @@ class SecurityConfig(
         val WHITELIST_URL = arrayOf(
             "/api/speech/upload",
             "/api/speech/register",
+            "/api/speech/register2",
+            "/api/speech/analysis",
             "/"
         )
     }

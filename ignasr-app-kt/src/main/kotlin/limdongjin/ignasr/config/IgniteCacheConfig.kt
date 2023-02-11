@@ -95,6 +95,25 @@ class IgniteCacheConfig(
                                 DEFAULT_EXPIRY_DURATION
                             )
                         )
+                        cl.getOrCreateCache<String, ByteArray>(
+                            buildDefaultClientCacheConfiguration(
+                                "blobs",
+                                DEFAULT_EXPIRY_DURATION
+                            )
+                        )
+                        cl.getOrCreateCache<String, ByteArray>(
+                            buildDefaultClientCacheConfiguration(
+                                "embeddings",
+                                DEFAULT_EXPIRY_DURATION
+                            )
+                        )
+                        cl.getOrCreateCache<String, String>(
+                            buildDefaultClientCacheConfiguration(
+                                "key2name",
+                                DEFAULT_EXPIRY_DURATION
+                            )
+                        )
+
                         flag = false
                     }
                 } catch (e: Exception) {

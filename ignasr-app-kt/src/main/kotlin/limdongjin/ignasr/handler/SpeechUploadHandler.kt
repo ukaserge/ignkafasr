@@ -2,6 +2,7 @@ package limdongjin.ignasr.handler
 
 import limdongjin.ignasr.dto.SpeechUploadResponseDto
 import limdongjin.ignasr.protos.UserPendingProto
+import limdongjin.ignasr.protos.AnalysisRequest
 import limdongjin.ignasr.repository.IgniteRepository
 import limdongjin.ignasr.util.MultiPartUtil
 import org.apache.kafka.common.utils.Time
@@ -31,9 +32,55 @@ class SpeechUploadHandler(
     }
 
     fun index(request: ServerRequest?): Mono<ServerResponse> {
-
         return ServerResponse.ok().bodyValue("hello world")
     }
+ 
+    fun analysis(request: ServerRequest): Mono<ServerResponse> {
+        val fieldNameToBytesMono: Function<String, Mono<ByteArray>> =
+            MultiPartUtil.toFunctionThatFieldNameToBytesMono(request)
+        val userIdMono = fieldNameToBytesMono.apply("userId")
+            .map { s: ByteArray? -> UUID.fromString(String(s!!)) }
+        val reqIdMono = fieldNameToBytesMono.apply("name")
+            .map { s: ByteArray? -> UUID.fromString(String(s!!)) }
+        val urlMono = fieldNameToBytesMono.apply("url")
+            .map { s: ByteArray? -> String(s!!) }
+        
+        return Mono.zip(userIdMono, reqIdMono, urlMono)
+            .flatMap { tuple3 ->
+                val analysisRequestBytes = AnalysisRequest
+                    .newBuilder()
+                    .setUserId(tuple3.t1.toString())
+                    .setReqId(tuple3.t2.toString())
+                    .setUrl(tuple3.t3.toString())
+                    .build()
+                    .toByteArray()
+                reactiveKafkaProducerTemplate
+                    .send(
+                        SenderRecord.create<String?, ByteArray, Any?>(
+                            "analysis.request",
+                            Random().nextInt(10),
+                            Time.SYSTEM.milliseconds(),
+                            "hello",
+                            analysisRequestBytes,
+                            null
+                        )
+                    )
+                    .flatMap { Mono.just(tuple3) }
+            }
+            .flatMap { tuple3 ->
+                toSuccessResponseDtoMono(
+                    tuple3.t2,
+                    "success upload; userId = ",
+                    tuple3.t2.toString()
+                )
+            }
+            .flatMap { responseDto ->
+                ServerResponse.ok()
+                    .headers(::addCorsHeaders)
+                    .body(Mono.just<Any>(responseDto), SpeechUploadResponseDto::class.java)
+            }
+    }
+
 
     fun upload(request: ServerRequest): Mono<ServerResponse> {
         val fieldNameToBytesMono: Function<String, Mono<ByteArray>> =
@@ -105,6 +152,47 @@ class SpeechUploadHandler(
                     .body(Mono.just<Any>(responseDto), SpeechUploadResponseDto::class.java)
             }
     }
+    fun register2(request: ServerRequest): Mono<ServerResponse> {
+        val fieldNameToBytesMono: Function<String, Mono<ByteArray>> =
+            MultiPartUtil.toFunctionThatFieldNameToBytesMono(request)
+        val reqIdMono = fieldNameToBytesMono.apply("reqId")
+            .map { s: ByteArray -> String(s) }
+        val fileMono = fieldNameToBytesMono.apply("file")
+        val labelMono = fieldNameToBytesMono.apply("label")
+            .map { bytes: ByteArray -> String(bytes) }
+
+        val fileUploadMonoMono: Mono<Mono<String>> = Mono.zip(reqIdMono, fileMono)
+            .flatMap { tuple: Tuple2<String, ByteArray> ->
+                igniteRepository.putAsync(
+                    "blobs",
+                    tuple.t1,
+                    tuple.t2
+                )
+            }
+        val labelUploadMonoMono: Mono<Mono<String>> = Mono.zip(labelMono, reqIdMono)
+            .flatMap { tuple: Tuple2<String, String> ->
+                igniteRepository.putAsync(
+                    "key2name",
+                    tuple.t2,
+                    tuple.t1
+                )
+            }
+
+        return Mono.zip(fileUploadMonoMono, labelUploadMonoMono)
+            .flatMap<Any> { t ->
+                val fileUploadMono = t.t1
+                val labelUploadMono = t.t2
+                Mono.zip(fileUploadMono, labelUploadMono)
+                    .flatMap { tuple3 ->
+                        toSuccessResponseDtoMono(tuple3.t2, "success register; ", tuple3.t1)
+                    }
+            }
+            .flatMap { responseDto: Any ->
+                ServerResponse.ok()
+                    .headers(::addCorsHeaders)
+                    .body(Mono.just<Any>(responseDto), SpeechUploadResponseDto::class.java)
+            }
+    }
 
     fun register(request: ServerRequest): Mono<ServerResponse> {
         val fieldNameToBytesMono: Function<String, Mono<ByteArray>> =
@@ -170,12 +258,20 @@ class SpeechUploadHandler(
     }
 
     companion object {
-//        private val logger = Loggers.getLogger(SpeechUploadHandler::class.java)
         fun toSuccessResponseDtoMono(reqId: UUID, msg: String, label: String): Mono<SpeechUploadResponseDto> {
             return Mono.just(
                 SpeechUploadResponseDto(
                     reqId.toString(),
                     String.format("%s; %s; %s", msg, reqId.toString(), label),
+                    label
+                )
+            )
+        }
+        fun toSuccessResponseDtoMono(reqId: String, msg: String, label: String): Mono<SpeechUploadResponseDto> {
+            return Mono.just(
+                SpeechUploadResponseDto(
+                    reqId,
+                    String.format("%s; %s; %s", msg, reqId, label),
                     label
                 )
             )

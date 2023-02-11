@@ -20,6 +20,8 @@ class SpeechRouter {
         "/api".and(accept(MediaType.MULTIPART_FORM_DATA)).nest {
             POST("/speech/register", handler::register)
             POST("/speech/upload", handler::upload)
+            POST("/speech/analysis", handler::analysis)
+            POST("/speech/register2", handler::register2)
             GET("/user/foo", handler::foo)
         }
         GET("/").and(accept(MediaType.ALL)).invoke(handler::index)
