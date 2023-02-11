@@ -38,6 +38,34 @@ class VerificationService {
 
     return await axios.post(uploadApiURL, formData, axiosReqConfig);
   };
+ verifyFile: (file, uuid, userId) => Promise<AxiosResponse<any>> =
+      async (file, uuid: string, userId: string) => {
+    const IGNASR_SERVER = process.env.NEXT_PUBLIC_IGNASR_SERVER
+    const uploadApiURL = `${IGNASR_SERVER}/api/speech/upload`
+    let withCredentials = !(IGNASR_SERVER.includes("http://localhost"))
+    // const uploadApiURL = "https://ignasr.limdongjin.com/api/speech/upload"
+
+    const axiosReqConfig: AxiosRequestConfig = {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      },
+      timeout: 200000, 
+      withCredentials: withCredentials
+    }
+    let fileUrl = URL.createObjectURL(file)
+    return await fetch(fileUrl)
+      .then(async (blob) => {
+          blob.blob().then((bblob) => {
+            const formData = new FormData();
+            formData.append("name", uuid);
+            formData.append("file", new Blob([bblob], {type: "audio/wav"}), "voice.wav");
+            formData.append("label", userId);
+            formData.append("userId", userId);
+
+            return axios.post(uploadApiURL, formData, axiosReqConfig);
+        })
+     })
+  };
 
   // TODO refactoring
   async initStomp({userId, stompErrorCallback, confs}: AnalyzeParams) {

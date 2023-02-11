@@ -12,18 +12,7 @@ import { RecorderButton } from "@/hooks/useRecorder";
 
 export default function MainContent() {
     const UUID = useRef<string>("");
-    // const isRecording = useRef(false);
-    // const isAnalyzing = useRef(false);
-    // const isSuccess = useRef(false);
-    // const isError = useRef(false);
     const registeredUuid = [];
-    // let accBlob: Blob;
-    // let prevBlob: Blob;
-    // const audioElemRef = useRef<HTMLAudioElement>(null);
-    // const spinElemRef = useRef(null);
-    // const statusElemRef = useRef(null);
-    // const startButtonRef = useRef(null);
-    // const stopButtonRef = useRef(null);
     const [isSpin, setSpin] = useState(true);
     const labelRef = useRef<HTMLInputElement>(null);
     const errorMsg = useRef("");
@@ -76,15 +65,12 @@ export default function MainContent() {
     const recorderPermissionOnRejected = (e) => {
         console.log("recorder permission rejected");
         console.log(e)
-        // isError.current = true
-        // elementsUpdate()
     }
 
     useEffect(() => {
         if(UUID.current == undefined || UUID.current == "" || UUID.current == null){
             UUID.current = uuidv4();
         }
-        // elementsUpdate();
     }, []);
 
     const startRecording = async (recorder, successCallback, failureCallback) => {
@@ -168,11 +154,6 @@ export default function MainContent() {
                             return;
                         }
                                     
-                        // let prevBlob = entireBlob.slice(
-                        //     prevOffset,
-                        //     offset,
-                        //     "audio/wav"
-                        // )
                         let lastBlob = entireBlob.slice(
                             prevOffset,
                             entireBlob.size,
@@ -195,20 +176,12 @@ export default function MainContent() {
                                 // elementsUpdate();
                                 return undefined;
                             });
-                        // ConcatenateBlobs([prevBlob, lastBlob], "audio/wav", (cBlob) => {
-                        // });
                     })
-                // isRecording.current = false;
-                // isAnalyzing.current = false;
-                // isSuccess.current = true;
             })
             .catch((e) => {
                 console.log(e)
                 errorMsg.current = e
                 currentStatusRef.current.innerHTML = registerFailMsg()
-                // isRecording.current = false;
-                // isAnalyzing.current = false;
-                // isError.current = true
             })
         ;
     }
