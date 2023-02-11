@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package limdongjin.ignasr.protos;
+
+message AnalysisResultBasic {
+  string reqId = 1;
+  string userId = 2;
+  string url = 3;
+  string videoId = 4;
+  string title = 5;
+  string description = 6;
+  string channelId = 7;
+  string duration = 8;
+  string embedUrl = 9;
+  string keywords = 10;
+  string views = 11;
+  string thumbnailUrl = 12;
+  string channelUrl = 13;
+}
