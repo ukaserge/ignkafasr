@@ -71,6 +71,7 @@ class SecurityConfig(
             "/api/speech/upload",
             "/api/speech/register",
             "/api/speech/register2",
+            "/api/speech/ysearch",
             "/api/speech/analysis",
             "/"
         )

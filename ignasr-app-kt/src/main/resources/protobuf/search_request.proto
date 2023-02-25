@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package limdongjin.ignasr.protos;
+
+option java_outer_classname = "SearchRequestProto";
+option java_multiple_files = true;
+
+message SearchRequest {
+  string reqId = 1;
+  string userId = 2;
+  string keyword = 3;
+  int32 limitNum = 4;
+  int32 limitDurationSeconds = 5;
+}

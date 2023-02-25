@@ -59,69 +59,8 @@ class IgniteCacheConfig(
             it.isPartitionAwarenessEnabled = DEFAULT_IS_PARTITION_AWARENESS_ENABLED
             it.sendBufferSize = DEFAULT_SEND_BUFFER_SIZE
             it.receiveBufferSize = DEFAULT_RECEIVE_BUFFER_SIZE
-
-            var i = 0
-            var flag = true
-            while (flag) {
-                i += 1
-                if(i == 10) {
-                    throw RuntimeException("can't connect ignite")
-                }
-                try {
-                    Ignition.startClient(it).use { cl ->
-                        //        ClientCacheConfiguration cacheCfg = buildDefaultClientCacheConfiguration(cacheName);
-                        //        cl.destroyCache(cacheName);
-                        cl.getOrCreateCache<UUID, ByteArray>(
-                            buildDefaultClientCacheConfiguration(
-                                "uploadCache",
-                                DEFAULT_EXPIRY_DURATION
-                            )
-                        )
-                        cl.getOrCreateCache<UUID, UUID>(
-                            buildDefaultClientCacheConfiguration(
-                                "authCache",
-                                DEFAULT_EXPIRY_DURATION
-                            )
-                        )
-                        cl.getOrCreateCache<UUID, UUID>(
-                            buildDefaultClientCacheConfiguration(
-                                "reqId2userId",
-                                DEFAULT_EXPIRY_DURATION
-                            )
-                        )
-                        cl.getOrCreateCache<UUID, String>(
-                            buildDefaultClientCacheConfiguration(
-                                "uuid2label",
-                                DEFAULT_EXPIRY_DURATION
-                            )
-                        )
-                        cl.getOrCreateCache<String, ByteArray>(
-                            buildDefaultClientCacheConfiguration(
-                                "blobs",
-                                DEFAULT_EXPIRY_DURATION
-                            )
-                        )
-                        cl.getOrCreateCache<String, ByteArray>(
-                            buildDefaultClientCacheConfiguration(
-                                "embeddings",
-                                DEFAULT_EXPIRY_DURATION
-                            )
-                        )
-                        cl.getOrCreateCache<String, String>(
-                            buildDefaultClientCacheConfiguration(
-                                "key2name",
-                                DEFAULT_EXPIRY_DURATION
-                            )
-                        )
-
-                        flag = false
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-            Thread.sleep(2000)
         }
+
         return clientCfg
     }
 
@@ -134,7 +73,7 @@ class IgniteCacheConfig(
         val DEFAULT_IS_PARTITION_AWARENESS_ENABLED = true
         val DEFAULT_SEND_BUFFER_SIZE = 15 * 1024 * 1024
         val DEFAULT_RECEIVE_BUFFER_SIZE = 15 * 1024 * 1024
-        val DEFAULT_EXPIRY_DURATION = Duration.ONE_HOUR
+        val DEFAULT_EXPIRY_DURATION = Duration.ONE_DAY
 
         private fun buildDefaultClientCacheConfiguration(
             cacheName: String,

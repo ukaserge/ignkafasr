@@ -3,8 +3,10 @@ package limdongjin.ignasr.handler
 import limdongjin.ignasr.dto.SpeechUploadResponseDto
 import limdongjin.ignasr.protos.UserPendingProto
 import limdongjin.ignasr.protos.AnalysisRequest
+import limdongjin.ignasr.protos.SearchRequest
 import limdongjin.ignasr.repository.IgniteRepository
 import limdongjin.ignasr.util.MultiPartUtil
+
 import org.apache.kafka.common.utils.Time
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
@@ -34,7 +36,61 @@ class SpeechUploadHandler(
     fun index(request: ServerRequest?): Mono<ServerResponse> {
         return ServerResponse.ok().bodyValue("hello world")
     }
- 
+    
+    fun ysearch(request: ServerRequest): Mono<ServerResponse> {
+        val fieldNameToBytesMono: Function<String, Mono<ByteArray>> =
+            MultiPartUtil.toFunctionThatFieldNameToBytesMono(request)
+
+        val userIdMono = fieldNameToBytesMono.apply("userId")
+            .map { s: ByteArray? -> String(s!!) }
+        val reqIdMono = fieldNameToBytesMono.apply("name")
+            .map { s: ByteArray? -> String(s!!) }
+        val keywordMono = fieldNameToBytesMono.apply("keyword")
+            .map { s: ByteArray? -> String(s!!) }
+        val limitNumMono = fieldNameToBytesMono.apply("limitNum")
+            .map { s: ByteArray? -> String(s!!).toInt() }
+        val limitDurationSecondsMono = fieldNameToBytesMono.apply("limitDurationSeconds")
+            .map { s: ByteArray? -> String(s!!).toInt() }
+        
+        return Mono.zip(userIdMono, reqIdMono, keywordMono, limitNumMono, limitDurationSecondsMono)
+            .flatMap { tuple ->
+                val searchRequestBytes = SearchRequest
+                    .newBuilder()
+                    .setUserId(tuple.t1)
+                    .setReqId(tuple.t2)
+                    .setKeyword(tuple.t3)
+                    .setLimitNum(tuple.t4)
+                    .setLimitDurationSeconds(tuple.t5)
+                    .build()
+                    .toByteArray()
+
+                reactiveKafkaProducerTemplate
+                    .send(
+                        SenderRecord.create<String?, ByteArray, Any?>(
+                            "search.request",
+                            Random().nextInt(10),
+                            Time.SYSTEM.milliseconds(),
+                            "hello",
+                            searchRequestBytes,
+                            null
+                        )
+                    )
+                    .flatMap { Mono.just(tuple) }
+            }
+            .flatMap { tuple ->
+                toSuccessResponseDtoMono(
+                    tuple.t2,
+                    "pending search.request; userId = ",
+                    tuple.t1
+                )
+            }
+            .flatMap { responseDto ->
+                ServerResponse.ok()
+                    .headers(::addCorsHeaders)
+                    .body(Mono.just<Any>(responseDto), SpeechUploadResponseDto::class.java)
+            }
+    }
+
     fun analysis(request: ServerRequest): Mono<ServerResponse> {
         val fieldNameToBytesMono: Function<String, Mono<ByteArray>> =
             MultiPartUtil.toFunctionThatFieldNameToBytesMono(request)
