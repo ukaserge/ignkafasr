@@ -9,9 +9,10 @@ message AnalysisResultSid {
   string videoId = 3;
 
   message ChunkSidResult {
-    string chunkId = 1;
+    string chunkRange = 1;
     string speakerName = 2;
     float score = 3;
+    string text = 4;
   }
   repeated ChunkSidResult chunksSidResult = 4;
   string msg = 5;
