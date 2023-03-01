@@ -1,0 +1,8 @@
+*.onnx
+__pycache__
+.DS_Store
+.idea
+.vscode
+dist/
+ggml-tiny.bin
+ggml-base.bin
