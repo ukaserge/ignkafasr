@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+message VideoToSid {    
+  string reqId = 1;
+  string userId = 2;
+  string videoId = 3;
+
+  message ChunkSidResult {
+    string chunkRange = 1;
+    string speakerName = 2;
+    float score = 3;
+    string text = 4;
+  }
+  repeated ChunkSidResult chunksSidResult = 4;
+  string msg = 5;
+  int64 timestamp = 6;
+}

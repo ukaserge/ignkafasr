@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  labels:
+    app: searchyt 
+  name: searchyt
+  namespace: limdongjin
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: searchyt
+  template:
+    metadata:
+      labels:
+        app: searchyt 
+    spec:
+      serviceAccountName: searchyt
+      containers:
+        - image: gcr.io/limdongjin-kube/searchyt
+          name: searchyt
+          resources:
+            requests:
+              cpu: "300m"
+              memory: 1Gi
+              ephemeral-storage: "2Gi"
+            limits:
+              cpu: "500m"
+              memory: 2Gi
+              ephemeral-storage: "7Gi"
+          env:
+            - name: BOOTSTRAPSERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: bootstrap_servers
+            - name: KAFKA_SECURITY_PROTOCOL
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: security_protocol
+            - name: KAFKA_SASL_MECHANISM
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: sasl_mechanism 
+            - name: KAFKA_USER_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: user_name
+            - name: KAFKA_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: user_password

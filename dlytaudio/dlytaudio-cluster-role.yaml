@@ -1,0 +1,57 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dlytaudio-ignite-endpoint-access
+  namespace: limdongjin
+  labels:
+    app: dlytaudio
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    resourceNames: ["ignite"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dlytaudio-role-binding
+  namespace: limdongjin
+  labels:
+    app: dlytaudio 
+subjects:
+  - kind: ServiceAccount
+    name: dlytaudio
+roleRef:
+  kind: Role
+  name: dlytaudio-ignite-endpoint-access
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dlytaudio
+  namespace: limdongjin
+rules:
+- apiGroups:
+  - ""
+  resources: # Here are the resources you can access
+  - pods
+  - endpoints
+  verbs: # That is what you can do with them
+  - get
+  - list
+  - watch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: dlytaudio 
+  namespace: limdongjin
+roleRef:
+  kind: ClusterRole
+  name: dlytaudio
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: dlytaudio
+  namespace: limdongjin

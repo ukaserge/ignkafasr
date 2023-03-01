@@ -1,0 +1,13 @@
+dist
+poetry.lock
+.vscode
+.cache
+.idea
+.git
+.DS_Store
+tmp
+tests
+.dist
+__pycache__
+.venv
+pretrained_models

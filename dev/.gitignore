@@ -1,0 +1,15 @@
+.DS_Store
+.env
+secrets/
+tmp/
+*.json
+bq-config.json
+docker-compose.yml
+cassandra-reaper
+spbrain1_data2    
+zookeeper_data
+data               
+spbrain2_data2     
+zookeeper_log
+kafka_data         
+storage

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package limdongjin.ignasr.protos;
+
+message SearchRequest {
+  string reqId = 1;
+  string userId = 2;
+  string keyword = 3;
+  int32 limitNum = 4;
+  int32 limitDurationSeconds = 5;
+}

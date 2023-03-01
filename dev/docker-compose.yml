@@ -1,118 +1,69 @@
 version: '3'
 
 services:
-  cassandra:
-    image: cassandra:3.11
-    env_file:
-      - ./docker-services/cassandra/cassandra.env
-    mem_limit: 1g
-    memswap_limit: 1g
-    mem_swappiness: 0
-    ports:
-      - "7000:7000"
-      - "7001:7001"
-      - "7199:7199"
-      - "9042:9042"
-    volumes:
-      - ./data/cassandra:/var/lib/cassandra
-      - ./docker-services/cassandra/jmxremote.access:/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/management/jmxremote.access
-      - ./docker-services/cassandra/jmxremote.password:/etc/cassandra/jmxremote.password
-    networks:
-      - mybridge-network
   ignite:
     image: apacheignite/ignite:2.14.0
     environment:
-      - JVM_OPTS=-Xms512m -Xmx512m -XX:+AggressiveOpts -XX:+UseG1GC -XX:MaxPermSize=256m -XX:+DisableExplicitGC -DIGNITE_PERFORMANCE_SUGGESTIONS_DISABLED=true
-    networks:
-      - mybridge-network
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+      - IGNITE_QUIET=false
+      - CONFIG_URI=/config-file.xml
+      - JVM_OPTS=-server -Xms512m -Xmx512m -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+ScavengeBeforeFullGC -XX:+DisableExplicitGC -XX:+HeapDumpOnOutOfMemoryError -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps 
+      - IGNITE_DUMP_THREADS_ON_FAILURE_THROTTLING_TIMEOUT=0
     volumes:
-      - ./zookeeper_data:/var/lib/zookeeper/data
-      - ./zookeeper_log:/var/lib/zookeeper/log
-    environment:
-      ZOOKEEPER_CLIENT_PORT: '2181'
-      ZOOKEEPER_TICK_TIME: '2000'
-      ZOOKEEPER_ADMIN_ENABLE_SERVER: 'false'
+      - ./ignite-config.xml:/config-file.xml
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    restart: unless-stopped
     networks:
       - mybridge-network
-  kafka:
-    image: confluentinc/cp-kafka:latest
+  dlytaudio:
+    image: limdongjin/dlytaudio
     restart: always
     environment:
-      KAFKA_BROKER_ID: "1"
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092"
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
-      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
-      KAFKA_JMX_PORT: "9091"
-      # NUM_PARTITIONS: "12"
-      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: "false"
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    volumes: 
-      - ./kafka_data:/var/lib/kafka/data
-    networks:
-      - mybridge-network
-  akhq:
-    image: tchiotludo/akhq
-    restart: always
-    environment:
-      AKHQ_CONFIGURATION: |
-        akhq:
-          connections:
-            docker-kafka-server:
-              properties:
-                bootstrap.servers: "kafka:9092"
-    ports:
-      - 8080:8080
-    networks:
-      - mybridge-network
-  spbrain:
-    image: limdongjin/spbrain
-    restart: always
-    environment:
-      BOOTSTRAPSERVERS: kafka:9092
-      IGNITE_SERVICE_NAME: ignite
-      IGNITE_PORT: 10800
-      CONSUMER_ASSIGN_STRATEGY: "range,roundrobin"
+      BOOTSTRAPSERVERS: ${BOOTSTRAPSERVERS}
+      KAFKA_SECURITY_PROTOCOL: ${KAFKA_SECURITY_PROTOCOL}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM}
+      KAFKA_USER_NAME: ${KAFKA_USER_NAME}
+      KAFKA_USER_PASSWORD: ${KAFKA_USER_PASSWORD}
+      IGNITE_SERVICE_NAME: ${IGNITE_SERVICE_NAME} 
+      IGNITE_PORT: ${IGNITE_PORT}
+      BQ_CREDENTIALS_JSON_FILE: ${BQ_CREDENTIALS_JSON_FILE}
     ulimits:
       nproc: 65535
       nofile:
         soft: 20000
         hard: 40000
     volumes:
-      - ./spbrain1_data2:/app/saved
+      - ./secrets/bq-config.json:${BQ_CREDENTIALS_JSON_FILE}
     networks:
       - mybridge-network
-  spbrain-t:
-    image: limdongjin/spbrain-t
+  sid:
+    image: limdongjin/sid
     restart: always
     environment:
-      BOOTSTRAPSERVERS: kafka:9092
-      IGNITE_SERVICE_NAME: ignite
-      IGNITE_PORT: 10800
-      CONSUMER_ASSIGN_STRATEGY: "range,roundrobin"
-    ulimits:
-      nproc: 65535
-      nofile:
-        soft: 20000
-        hard: 40000
+      BOOTSTRAPSERVERS: ${BOOTSTRAPSERVERS}
+      KAFKA_SECURITY_PROTOCOL: ${KAFKA_SECURITY_PROTOCOL}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM}
+      KAFKA_USER_NAME: ${KAFKA_USER_NAME}
+      KAFKA_USER_PASSWORD: ${KAFKA_USER_PASSWORD}
+      IGNITE_SERVICE_NAME: ${IGNITE_SERVICE_NAME} 
+      IGNITE_PORT: ${IGNITE_PORT}
+      BQ_CREDENTIALS_JSON_FILE: ${BQ_CREDENTIALS_JSON_FILE}
     volumes:
-      - ./spbrain2_data2:/app/saved
+      - ./secrets/bq-config.json:${BQ_CREDENTIALS_JSON_FILE}
     networks:
       - mybridge-network
-  scrap-app:
-    image: limdongjin/scrap-app
+  searchyt:
+    image: limdongjin/searchyt
     restart: always
     environment:
-      BOOTSTRAPSERVERS: kafka:9092
-      IGNITE_SERVICE_NAME: ignite
-      IGNITE_PORT: 10800
-      CONSUMER_ASSIGN_STRATEGY: "range,roundrobin"
-      CASS_HOST: cassandra
-      CASS_USER_NAME: admin
-      CASS_USER_PASSWORD: admin
+      BOOTSTRAPSERVERS: ${BOOTSTRAPSERVERS}
+      KAFKA_SECURITY_PROTOCOL: ${KAFKA_SECURITY_PROTOCOL}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM}
+      KAFKA_USER_NAME: ${KAFKA_USER_NAME}
+      KAFKA_USER_PASSWORD: ${KAFKA_USER_PASSWORD}
     ulimits:
       nproc: 65535
       nofile:
@@ -120,17 +71,20 @@ services:
         hard: 40000
     networks:
       - mybridge-network
-  sid-app:
-    image: limdongjin/speaker-recognition-app
+  bqproducer:
+    image: limdongjin/bqproducer
     restart: always
     environment:
-      BOOTSTRAPSERVERS: kafka:9092
-      IGNITE_SERVICE_NAME: ignite
-      IGNITE_PORT: 10800
-      CONSUMER_ASSIGN_STRATEGY: "range,roundrobin"
-      CASS_HOST: cassandra
-      CASS_USER_NAME: admin
-      CASS_USER_PASSWORD: admin
+      BOOTSTRAPSERVERS: ${BOOTSTRAPSERVERS}
+      KAFKA_SECURITY_PROTOCOL: ${KAFKA_SECURITY_PROTOCOL}
+      KAFKA_SASL_MECHANISM: ${KAFKA_SASL_MECHANISM}
+      KAFKA_USER_NAME: ${KAFKA_USER_NAME}
+      KAFKA_USER_PASSWORD: ${KAFKA_USER_PASSWORD}
+      BQ_CREDENTIALS_JSON_FILE: ${BQ_CREDENTIALS_JSON_FILE}
+      BQ_DATASET_NAME: ${BQ_DATASET_NAME}
+      BQ_TABLE_NAME: ${BQ_TABLE_NAME}
+    volumes:
+      - ./secrets/bq-config.json:${BQ_CREDENTIALS_JSON_FILE}
     ulimits:
       nproc: 65535
       nofile:
@@ -145,29 +99,18 @@ services:
       - 8088:8088
     environment:
       MYPORT: 8088
-      ALLOWORIGIN: "*" # localhost:3000
-      BOOTSTRAPSERVERS: kafka:9092
-      SASLJAASCONFIG: unused
-      SECURITY_PROTOCOL: PLAINTEXT
-      SASL_MECHANISM: unused
+      ALLOWORIGIN: "*"
+      BOOTSTRAPSERVERS: ${BOOTSTRAPSERVERS}
+      SASLJAASCONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required username='${KAFKA_USER_NAME}' password='${KAFKA_USER_PASSWORD}';"
+      SECURITY_PROTOCOL: ${KAFKA_SECURITY_PROTOCOL} 
+      SASL_MECHANISM: ${KAFKA_SASL_MECHANISM}
       IGNITEMODE: local
       NAMESPACE: unused
       IGNITESERVICENAME: unused
-      IGNITEADDRESSES: ignite:10800
-    networks:
-      - mybridge-network
-  stomasr:
-    image: limdongjin/stomasr
-    restart: always
-    ports:
-      - 8089:8089
-    environment:
-      MYPORT: 8089
-      ALLOWORIGIN: "*" #localhost:3000
-      BOOTSTRAPSERVERS: kafka:9092
-      SASLJAASCONFIG: unused
-      SECURITY_PROTOCOL: PLAINTEXT
-      SASL_MECHANISM: unused
+      IGNITEADDRESSES: "${IGNITE_SERVICE_NAME}:${IGNITE_PORT}"
+      GCP_CREDENTIALS_LOCATION: "file:${BQ_CREDENTIALS_JSON_FILE}"
+    volumes:
+      - ./secrets/bq-config.json:${BQ_CREDENTIALS_JSON_FILE}
     networks:
       - mybridge-network
 networks:

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util
+        http://www.springframework.org/schema/util/spring-util.xsd">
+    <bean id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
+        <!-- <property name="workDirectory" value="/storage/work"/> -->
+        <!-- <property name="rebalanceBatchSize" value="#{2 * 1024 * 1024}"/> -->
+        <!-- <property name="rebalanceTimeout" value="3000"/> -->
+        <property name="rebalanceThreadPoolSize" value="4"/>
+        <property name="cacheConfiguration">
+            <list>
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="blobs"/>
+                    <property name="dataRegionName" value="Grid_Region"/>
+                    <property name="cacheMode" value="PARTITIONED"/>
+                    <property name="backups" value="0"/>
+                    <property name="rebalanceMode" value="SYNC"/>
+                    <property name="writeSynchronizationMode" value="PRIMARY_SYNC"/>
+                    <property name="expiryPolicyFactory">
+                        <bean class="javax.cache.expiry.CreatedExpiryPolicy" factory-method="factoryOf">
+                            <constructor-arg>
+                                <bean class="javax.cache.expiry.Duration">
+                                    <constructor-arg value="MINUTES"/>
+                                    <constructor-arg value="59"/>
+                                </bean>
+                            </constructor-arg>
+                        </bean>
+                    </property>
+                </bean>
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="key2name"/>
+                    <property name="dataRegionName" value="Grid_Region"/>
+                    <property name="cacheMode" value="PARTITIONED"/>
+                    <property name="backups" value="0"/>
+                    <property name="rebalanceMode" value="SYNC"/>
+                    <property name="writeSynchronizationMode" value="PRIMARY_SYNC"/>
+                    <property name="partitionLossPolicy" value="READ_WRITE_SAFE"/>
+                </bean>
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="embeddings"/>
+                    <property name="dataRegionName" value="Grid_Region"/>
+                    <property name="cacheMode" value="PARTITIONED"/>
+                    <property name="backups" value="0"/>
+                    <property name="rebalanceMode" value="SYNC"/>
+                    <property name="writeSynchronizationMode" value="PRIMARY_SYNC"/>
+                    <property name="partitionLossPolicy" value="READ_WRITE_SAFE"/>
+                </bean>
+                <bean class="org.apache.ignite.configuration.CacheConfiguration">
+                    <property name="name" value="numChunk"/>
+                    <property name="dataRegionName" value="Grid_Region"/>
+                    <property name="cacheMode" value="PARTITIONED"/>
+                    <property name="backups" value="0"/>
+                    <property name="rebalanceMode" value="SYNC"/>
+                    <property name="writeSynchronizationMode" value="PRIMARY_SYNC"/>
+                    <property name="expiryPolicyFactory">
+                        <bean class="javax.cache.expiry.CreatedExpiryPolicy" factory-method="factoryOf">
+                            <constructor-arg>
+                                <bean class="javax.cache.expiry.Duration">
+                                    <constructor-arg value="MINUTES"/>
+                                    <constructor-arg value="59"/>
+                                </bean>
+                            </constructor-arg>
+                        </bean>
+                    </property>
+                </bean>
+            </list>
+        </property>
+        <property name="dataStorageConfiguration">
+            <bean class="org.apache.ignite.configuration.DataStorageConfiguration">
+                <property name="defaultDataRegionConfiguration">
+                    <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
+                        <property name="name" value="Default_Region"/>
+                        <!-- <property name="initialSize" value="#{300 * 1024 * 1024}"/> -->
+                    </bean>
+                </property>
+                <property name="dataRegionConfigurations">
+                    <list>
+                        <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
+                            <property name="name" value="Persistence_Region"/>
+                            <!-- <property name="initialSize" value="#{30L * 1024 * 1024}"/> -->
+                            <!-- <property name="checkpointPageBufferSize" value="#{2024L * 1024 * 1024}"/> -->
+                            <!-- <property name="maxSize" value="#{5L * 1024 * 1024 * 1024}"/> -->
+                            <!-- <property name="persistenceEnabled" value="true"/> -->
+                        </bean>
+                        
+                        <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
+                            <property name="name" value="Grid_Region"/>
+                            <!-- <property name="initialSize" value="#{30L * 1024 * 1024}"/>
+                            <property name="maxSize" value="#{5L * 1024 * 1024 * 1024}"/> -->
+                        </bean>
+                    </list>
+                </property>
+
+        <!--    <property name="walSegments" value="20"/>
+                <property name="walSegmentSize" value="#{128 * 1024 * 1024}"/>
+            
+                <property name="walPath" value="/storage/wal"/>
+                <property name="storagePath" value="/storage/persistence"/> 
+                <property name="walArchivePath" value="/storage/wal-archive"/> 
+                <property name="maxWalArchiveSize" value="2000000000"/> 
+            -->
+            </bean>
+        </property>
+        <property name="discoverySpi">
+            <bean class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
+                <property name="ipFinder">
+                    <bean class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">
+                        <property name="addresses">
+                          <list>
+                              <value>ignite:47500..47509</value>
+                              <!-- <value>ignite2:47500..47509</value>
+                              <value>ignite3:47500..47509</value>
+                              <value>ignite4:47500..47509</value>
+                              <value>ignite5:47500..47509</value> -->
+                          </list>
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+</beans>

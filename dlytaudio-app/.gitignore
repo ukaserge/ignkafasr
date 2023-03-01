@@ -1,0 +1,12 @@
+*.onnx
+*.ckpt
+poetry.lock
+.idea
+.cache/
+.cache2
+dist
+.venv
+pretrained_models
+pretrained_model_checkpoints
+__pycache__
+.DS_Store

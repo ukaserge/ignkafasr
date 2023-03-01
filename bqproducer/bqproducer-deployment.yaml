@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  labels:
+    app: bqproducer 
+  name: bqproducer
+  namespace: limdongjin
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: bqproducer
+  template:
+    metadata:
+      labels:
+        app: bqproducer 
+    spec:
+      serviceAccountName: bqproducer
+      containers:
+        - image: gcr.io/limdongjin-kube/bqproducer
+          name: bqproducer
+          resources:
+            requests:
+              cpu: "300m"
+              memory: 1Gi
+              ephemeral-storage: "2Gi"
+            limits:
+              cpu: "500m"
+              memory: 2Gi
+              ephemeral-storage: "7Gi"
+          volumeMounts:
+            - mountPath: '/app/bq-config.json'
+              name: config-volume
+              readOnly: true
+              subPath: config.json
+          env:
+            - name: BOOTSTRAPSERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: bootstrap_servers
+            - name: KAFKA_SECURITY_PROTOCOL
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: security_protocol
+            - name: KAFKA_SASL_MECHANISM
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: sasl_mechanism 
+            - name: KAFKA_USER_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: user_name
+            - name: KAFKA_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: user_password
+            - name: CREDENTIALS_JSON_FILE
+              value: "/app/bq-config.json"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: bq-config

@@ -1,3 +1,7 @@
+tmp2/
+.cache
+__pycache__
+*.onnx
 .DS_Store
 ignkaf.code-workspace
 my-tmp

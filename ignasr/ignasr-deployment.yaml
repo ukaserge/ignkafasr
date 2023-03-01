@@ -32,20 +32,39 @@ spec:
           env:
             - name: MYPORT
               value: "8080"
+            - name: BOOTSTRAPSERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: bootstrap_servers
+            - name: SECURITY_PROTOCOL
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: security_protocol
+            - name: SASL_MECHANISM
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: sasl_mechanism 
+            - name: KAFKA_USER_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: user_name
+            - name: KAFKA_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kafka_info
+                  key: user_password
             - name: ALLOWORIGIN
               # value: "https://limdongjin-kube.du.r.appspot.com"
               value: "https://kafasr.limdongjin.com"
-            - name: BOOTSTRAPSERVERS
-              value: "my-cluster-kafka-bootstrap.kafka-cluster:9092"
-            - name: SECURITY_PROTOCOL
-              value: "SASL_PLAINTEXT"
-            - name: SASL_MECHANISM
-              value: "SCRAM-SHA-512"
             - name: SASLJAASCONFIG
               valueFrom:
                 secretKeyRef:
-                  name: ignasr
-                  key: "sasl.jaas.config"
+                  name: kafka_info
+                  key: sasl_jaas_config
             - name: IGNITESERVICENAME
               value: "ignite-service"
             - name: NAMESPACE
