@@ -51,6 +51,7 @@ services:
       IGNITE_SERVICE_NAME: ${IGNITE_SERVICE_NAME} 
       IGNITE_PORT: ${IGNITE_PORT}
       BQ_CREDENTIALS_JSON_FILE: ${BQ_CREDENTIALS_JSON_FILE}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     volumes:
       - ./secrets/bq-config.json:${BQ_CREDENTIALS_JSON_FILE}
     networks:
