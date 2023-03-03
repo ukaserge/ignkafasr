@@ -24,7 +24,8 @@ onnxruntime = "1.14.0"
 tqdm = "4.64.1"
 scipy = "1.9.3"
 google-cloud-datastore = "^2.13.2"
-
+pydub = "^0.25.1"
+openai = "^0.27.0"
 
 [build-system]
 requires = ["poetry-core"]

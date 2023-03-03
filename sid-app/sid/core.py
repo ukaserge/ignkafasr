@@ -3,7 +3,6 @@ import io
 import logging
 import sys
 from typing import Optional, Tuple, Any, Dict, List
-from uuid import UUID
 import os
 import torch
 import threading
@@ -15,28 +14,16 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 from .protobuf.speech_request_pb2 import SpeechRequest
 from .protobuf.analysis_result_sid_pb2 import AnalysisResultSid
-from .my_constants import BLOB_CACHE, EMBEDDING_CACHE, KEY2NAME_CACHE, WHISPER_LIBNAME, WHISPER_FNAME_MODEL
+from .my_constants import BLOB_CACHE, EMBEDDING_CACHE, KEY2NAME_CACHE #, WHISPER_LIBNAME, WHISPER_FNAME_MODEL
 from .speaker_recognition import infer_speaker_embedding, search_speaker_by_embedding
-from .audio_processing import load_numpy_waveform, load_waveform 
-from .whisper_cpp_cdll.core import run_whisper
+from .torch_util import torch_to_blob, blob_to_torch
+from .audio_processing import load_numpy_waveform, load_waveform, join_wav_blobs
+from .whisper_api_util import run_whisper_api
+
 
 """HELPER FUNCTIONS"""
 
-def torch_to_blob(t):
-    bo = io.BytesIO()
-    torch.save(t, bo)
-    bo.seek(0)
-    blob = bo.read()
-    bo.close()
-    return blob
-
-def blob_to_torch(blob):
-    bo = io.BytesIO(blob)
-    t = torch.load(bo)
-    bo.close()
-    return t
-
-def load_joined_blob(entity, parent_kind_name, client):
+def load_joined_blob_from_datastore(entity, parent_kind_name, client):
     logging.debug(entity)
     n = entity['num_of_chunks']
     keys = [
@@ -51,7 +38,7 @@ def load_joined_blob(entity, parent_kind_name, client):
     blob = b''.join([chunk['value'] for chunk in sorted_chunks])
     return blob
 
-def load_joined_waveform(entity, parent_kind_name, client):
+def load_joined_wav_blob_from_datastore(entity, parent_kind_name, client):
     logging.debug(entity)
     n = entity['num_of_chunks']
     keys = [
@@ -63,11 +50,10 @@ def load_joined_waveform(entity, parent_kind_name, client):
     for keyss in keys:
         chunks.extend(client.get_multi(keyss))
     sorted_chunks = sorted(chunks, key = lambda chunk: int(chunk.key.name.replace(f"{entity.key.name}_", "")))
-
-    return np.concatenate([load_numpy_waveform(chunk['value']) for chunk in sorted_chunks])
     
-
-
+    joined_blob = join_wav_blobs([chunk['value'] for chunk in sorted_chunks])
+    
+    return joined_blob
 
 def load_speakers_name_and_embedding(
     client,
@@ -95,7 +81,7 @@ def load_speakers_name_and_embedding(
         os.getpid(), threading.get_ident()
     )
     stored_embedding_dict = { 
-        entity.key.name: blob_to_torch(load_joined_blob(entity, SPEAKER_EMBEDDINGS, client))
+        entity.key.name: blob_to_torch(load_joined_blob_from_datastore(entity, SPEAKER_EMBEDDINGS, client))
         for entity 
         in client.get_multi([
             client.key(SPEAKER_EMBEDDINGS, speaker_key) 
@@ -105,9 +91,7 @@ def load_speakers_name_and_embedding(
     }
 
     stored_embedding_keys = stored_embedding_dict.keys()
-    # get all by absent_key
     es2 = [e for e in es if e.key.name not in stored_embedding_keys]
-    # speaker_tuples = [(e.key.name, e['name'], b''.join([chunk['value'] for chunk in sorted(client.get_multi([client.key(SPEAKER_BLOBS, e.key.name, 'chunks', f'{e.key.name}_{i}') for i in range(e['num_of_chunks'])]), key = lambda c: int(c.key.name.replace(f"{e.key.name}_", "")))])) for e in es2]
     speaker_tuples = [
         (
             e.key.name, 
@@ -115,7 +99,7 @@ def load_speakers_name_and_embedding(
             infer_speaker_embedding
             (
                 load_waveform(
-                    load_joined_blob(
+                    load_joined_blob_from_datastore(
                         e, 
                         SPEAKER_BLOBS,
                         client
@@ -129,9 +113,6 @@ def load_speakers_name_and_embedding(
         in es2
     ]
 
-    # speaker_tuples = [(speaker_key, name, load_waveform(blob)) for speaker_key, name, blob in speaker_tuples]
-    # speaker_tuples = [(speaker_key, name, infer_speaker_embedding(waveform, sr_session, sr_f)) for speaker_key, name, waveform in speaker_tuples]
-    
     for speaker_key, name, embedding in speaker_tuples:
         entity = client.entity()
         entity.key = client.key(SPEAKER_EMBEDDINGS, speaker_key)
@@ -153,30 +134,6 @@ def load_speakers_name_and_embedding(
             e['value'] = chunk_blob
             chunk_entities.append(e)
         client.put_multi(chunk_entities)
-
-    """
-    absent_speaker_blob_dict: Dict[str, bytes] = ignite_template.get_all(BLOB_CACHE, list(absent_keys))
-    absent_speaker_waveform_tuples: List[Tuple[UUID, Tensor]] = (
-        (speaker_key, load_waveform(blob))
-        for speaker_key, blob
-        in absent_speaker_blob_dict.items()
-        if speaker_key is not None and blob is not None
-    )
-    absent_speaker_waveform_tuples = (
-        (speaker_key, waveform)
-        for speaker_key, waveform 
-        in absent_speaker_waveform_tuples
-        if waveform is not None
-    )
-    absent_speaker_embedding_tuples = [
-        (speaker_key, infer_speaker_embedding(waveform, sr_session, sr_f))
-        for speaker_key, waveform
-        in absent_speaker_waveform_tuples
-    ]
-    del absent_speaker_waveform_tuples
-
-    save_embeddings(ignite_template, absent_speaker_embedding_tuples)
-    """
 
     logging.info(
         '#%sT%s - Blob to Embeddings OK!!',
@@ -216,6 +173,7 @@ def on_next(
     sr_session, 
     sr_f
 ) -> Tuple[bytes, bool]:
+    SAMPLE_RATE = 16000
     req_id: str = speech_request.reqId
     user_id: str = speech_request.userId
     video_id: str = speech_request.videoId
@@ -231,58 +189,31 @@ def on_next(
     if video_entity is None:
         logging.error("invalid access")
         return handle_invalid_cache_access(req_id=req_id, user_id=user_id, video_id=video_id)
-    video_waveform = load_joined_waveform(video_entity, 'blobs', client)
-    # video_waveform = load_numpy_waveform(video_blob)
 
-    #blob_stream = ignite_template.get_all(
-    #        BLOB_CACHE, 
-    #        [f"{video_id}_{i}" for i in range(num_of_chunk)]
-    #    ).items()
-    #blob_stream: List[bytes] = [
-    #        blob 
-    #        for key, blob 
-    #        in blob_stream
-    #        if blob is not None
-    #    ]
-    # if len(blob_stream) == 0:
-    #     return handle_invalid_cache_access(req_id=req_id, user_id=user_id, video_id=video_id)
-    
-    #video_waveform = np.concatenate([
-    #        load_numpy_waveform(blob) 
-    #        for blob 
-    #        in blob_stream
-    #    ]).copy()
+    video_blob = load_joined_wav_blob_from_datastore(video_entity, 'blobs', client)
+    video_waveform = load_numpy_waveform(video_blob)
+    video_waveform_size = video_waveform.size
 
     logging.debug("chunks -> waveform OK")
     
-    spokens = run_whisper(
-            data = video_waveform, 
-            libname = WHISPER_LIBNAME, 
-            fname_model = WHISPER_FNAME_MODEL, 
-            verbose = True,
-            n_threads = 2,
-            language = b'ko',
-            print_realtime = False,
-            print_progress = False,
-            print_timestamps = False,
-            max_tokens = 10,
-            max_len = 5,
-            beam_search_beam_size = 10,
-            greedy_best_of = -1,
-            temperature = 0.0,
-            speed_up = False 
-        )
-    
+    spokens = run_whisper_api(video_blob) 
+        
     logging.debug("get spokens OK")
+    
+    spokens = [
+        segment 
+        for segment in spokens 
+        if int(segment['start']*SAMPLE_RATE)+1 < min(int(segment['end']*SAMPLE_RATE), video_waveform_size)
+    ]
 
     if len(spokens) == 0:
         return handle_voice_not_detected(req_id=req_id, user_id=user_id, video_id=video_id)
 
-    waveform_stream = (
-            torch.tensor(video_waveform[segment['start']:segment['end']]) 
+    waveform_stream = [
+            torch.tensor(video_waveform[int(segment['start']*SAMPLE_RATE):int(segment['end']*SAMPLE_RATE)] ) 
             for segment
             in spokens
-        )
+        ]
     
     embedding_stream = (
             infer_speaker_embedding(
@@ -329,7 +260,7 @@ def on_next(
     logging.debug("get sid_results ok")
     
     timestamp_texts = [ 
-            (f"{segment['start']/16000} ~ {segment['end']/16000}", segment['text'])
+            (f"{int(segment['start']/60)}:{int(segment['start']%60)} ~ {int(segment['end']/60)}:{int(segment['end']%60)}", segment['text'])
             for segment
             in spokens
         ]

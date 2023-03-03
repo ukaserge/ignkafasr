@@ -4,9 +4,10 @@ import numpy as np
 import logging
 import onnxruntime
 
-from .audio_processing import to_numpy, FeaturizedAudioDataset
-from .my_constants import VAD_CONF, VAD_POST_PROCESSING_PER_ARGS
+from .torch_util import to_numpy
+from .audio_featurizer_util import FeaturizedAudioDataset
 from .nemo_vad_util import generate_vad_segment_table_per_tensor
+# from .my_constants import VAD_CONF, VAD_POST_PROCESSING_PER_ARGS
 
 try:
     from torch.cuda.amp import autocast
@@ -21,12 +22,14 @@ except ImportError:
 #spokens: List[Tuple[int, int, Any]] = run_voice_activity_detection(
 #        waveform = video_waveform, 
 #        vad_featurizer = vad_f,
-#        vad_session = vad_session
+#        vad_session = vad_session,
+#        vad_post_processing_per_args = VAD_POST_PROCESSING_PER_ARGS
 #    )
 def run_voice_activity_detection(
     waveform: np.ndarray, 
     vad_featurizer: torch.nn.Module, 
-    vad_session: onnxruntime.InferenceSession
+    vad_session: onnxruntime.InferenceSession,
+    vad_post_processing_per_args
 ) -> List[Tuple[int, int, Any]]:
     data_layer = FeaturizedAudioDataset(
             signals = [], 
@@ -46,7 +49,7 @@ def run_voice_activity_detection(
     logging.debug("vad inference OK")
 
     # post processing
-    preds = generate_vad_segment_table_per_tensor(torch.tensor(result[2]), VAD_POST_PROCESSING_PER_ARGS)
+    preds = generate_vad_segment_table_per_tensor(torch.tensor(result[2]), vad_post_processing_per_args)
     spokens = [(start.detach().item(), end.detach().item(), duration.detach().item()) for start, end, duration in preds]
     spokens = [(int(start*16000.0), int(end*16000.0), duration) for start, end, duration in spokens]
     
@@ -75,6 +78,9 @@ def offline_inference_raw(
         SAMPLE_RATE=16000,
         data_layer=None,
         vad_session=None,
+        window_stride = 0.01,
+        strides_repeats = [(1, 1), (1, 2), (1, 2), (1, 2), (1, 1), (1, 1)],
+        labels = ['background', 'speech'],
         verbose=False
     ):
     assert data_layer is not None and vad_session is not None
@@ -91,9 +97,9 @@ def offline_inference_raw(
     frame_vad = FrameVAD(
             model_definition = {
                 'sample_rate': SAMPLE_RATE,
-                'preprocessor_window_stride': VAD_CONF['window_stride'],
-                'strides_repeats': VAD_CONF['strides_repeats'],
-                'labels': VAD_CONF['labels']
+                'preprocessor_window_stride': window_stride, # VAD_CONF['window_stride']
+                'strides_repeats': strides_repeats, # VAD_CONF['strides_repeats'],
+                'labels': labels # VAD_CONF['labels']
             },
             threshold=threshold,
             frame_len=FRAME_LEN,

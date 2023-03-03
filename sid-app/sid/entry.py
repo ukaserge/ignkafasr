@@ -1,26 +1,23 @@
 #!/usr/bin/env python3
-import ctypes
 import os
 import logging
 import sys
 import uuid
 from typing import Optional, Tuple, Any, Dict, List
-from queue import Queue
 import torch
 from confluent_kafka \
     import Message, Consumer as KafkaConsumer, Producer as KafkaProducer, KafkaException, KafkaError, TopicPartition
 import threading
-from multiprocessing import Process
-import time
 import onnxruntime
 from google.cloud import datastore
 from google.oauth2.service_account import Credentials
+import openai
 
+from .core import on_next
 from .my_constants import KAFKA_GROUP_ID, SPEECH_REQUEST_TOPIC, ANALYSIS_RESULT_SID_TOPIC, SR_ONNX_FILENAME, SR_CONF
 from .kafka_util import print_assignment, on_acked_print, on_commit_completed_print
-from .core import on_next
 from .protobuf.speech_request_pb2 import SpeechRequest
-from .audio_processing import load_featurizer
+from .audio_featurizer_util import load_featurizer
 
 """LOADER FUNCTIONS"""
 
@@ -146,7 +143,8 @@ if __name__ == "__main__":
         stream=sys.stdout,
     )
     torch.set_grad_enabled(False)
-    
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+
     kafka_conf = load_kafka_conf()
     client_loader = load_datastore_client_loader()
 

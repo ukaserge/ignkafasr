@@ -1,11 +1,11 @@
 import threading
 import os
-from typing import Optional, Tuple, Any, Dict, List
+from typing import Tuple, Dict
 import torch
 import logging
 
 import onnxruntime
-from .audio_processing import to_numpy
+from .torch_util import to_numpy
 
 def infer_speaker_embedding(
     waveform: torch.Tensor, 
@@ -18,7 +18,13 @@ def infer_speaker_embedding(
     elif len(waveform.shape) == 2:
         shape_tensor = torch.tensor([waveform.squeeze().shape[0]])
     else:
+        logging.debug(waveform)
         assert False
+    if waveform.squeeze().shape[0] == 0 or shape_tensor.shape[0] == 0:
+        logging.debug(waveform)
+        logging.debug(shape_tensor)
+        assert False
+
     processed_signal, processed_len = sr_featurizer(waveform, shape_tensor)
     ort_inputs = {
             sr_session.get_inputs()[0].name: to_numpy(processed_signal), 
@@ -30,7 +36,7 @@ def infer_speaker_embedding(
 def compare_embedding(
     emb1: torch.Tensor,
     emb2: torch.Tensor, 
-    threshold=0.7
+    threshold=0.75
 ) -> Tuple[torch.Tensor, bool]:
     emb1 = emb1.squeeze()
     emb2 = emb2.squeeze()
@@ -77,7 +83,7 @@ def search_speaker_by_embedding(
     )
 
     match_score = match_score.item()
-    match_speaker_name = speakers_key2name[match_speaker_key] if match_score >= 0.7 else 'unknown'
+    match_speaker_name = speakers_key2name[match_speaker_key] if match_score >= 0.75 else 'unknown'
 
     return match_speaker_name, match_score
 
